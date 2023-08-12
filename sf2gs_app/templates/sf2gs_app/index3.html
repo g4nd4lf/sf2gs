@@ -1,0 +1,104 @@
+{% extends "gs_app/layout.html" %}
+{% block script %}
+<script>
+    function getCookie(name) {
+        var value = "; " + document.cookie;
+        var parts = value.split("; " + name + "=");
+        if (parts.length == 2) return parts.pop().split(";").shift();
+    }
+    document.addEventListener('DOMContentLoaded', function(event) {
+        const csrftoken = getCookie('csrftoken'); //para resolver problemas de cors
+        document.querySelector('#myFileInput').addEventListener("change", function(event) {
+            const files=event.target.files
+            const filenames = Array.from(files, file => file.name);
+            var data = new FormData()
+            for (const file of files) {
+            data.append('files',file,file.name)
+            }
+            console.log(filenames)
+            fetch("{% url 'upload' %}", {
+                method: "POST",
+                headers: {
+                //'Accept': 'application/json, text/plain, */*',
+                //'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado
+            },
+                body: data,
+                
+            })
+            //.then(response => response.json()) //var dat =JSON.parse("{{ data |escapejs }}")
+            .then(
+                //response => JSON.parse(response)
+                response=>response.json()
+            )
+            .then(data => {
+                console.log(typeof(data));
+                // Handle the response from the server
+            })
+            .catch(error => {
+                console.error("Error uploading files:", error);
+            });
+        });
+            // fetch("{% url 'read_gs' %}",{
+            // method: 'POST',
+            // headers: {
+            //     'Accept': 'application/json, text/plain, */*',
+            //     'Content-Type': 'application/json',
+            //     'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado
+            // },
+            // body: JSON.stringify({day: this.value})
+            // }).then(response => response.json())
+            // .then(data => {
+            //     // Log data to the console
+            //     console.log(data['day']);
+            // });    
+
+        document.querySelector('#gs_day').onchange = function() {
+            console.log(this.value);
+            fetch("{% url 'read_gs' %}",{
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado
+            },
+            body: JSON.stringify({day: this.value})
+            }).then(response => response.json())
+            .then(data => {
+                // Log data to the console
+                console.log(data['day']);
+            });
+        }
+    })
+</script>
+{% endblock %}
+{% block body %}
+    <h1>Load gs</h1>
+    <h2>Select a Mundosol file to save data to the database</h2>
+    <label> Add new files to Database: </label>
+    <input type="file" class="custom-file-input" id="myFileInput" multiple />
+    <h1>Analize gs</h1>
+    <h2>Read gs data from file</h2>
+    {% for dat in data %}
+        <li>{{ dat }}</li>
+    {% empty %}
+        <li>No Data.</li>
+    {% endfor %}
+    {% csrf_token %}
+    <select name="station_sel" id="station_sel">
+            <option value="1">Station 1</option>
+            <option value="2">Station 2</option>
+            <option value="3">Station 3</option>
+            <option value="4">Station 4</option>
+    </select>
+    <select name="tree_sel" id="tree_sel">
+        <option value="1">Tree 1</option>
+        <option value="2">Tree 2</option>
+    </select>
+    <select name="gs_day" id="gs_day">
+            {% for day in days %}
+                <option value="{{ day.str }}">{{ day.str }}</option>
+            {% endfor %}
+    </select>
+    
+{% endblock %}

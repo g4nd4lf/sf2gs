@@ -1,5 +1,44 @@
 
-#FUNCIONES
+def irr2dic():
+    import pandas as pd
+    '''función que descarga del servidor los datos de tzs y meteo de irriwell y los guarda en dataframes'''
+    from base64 import b64encode
+    urlbase='http://gruporec.csic.es/Irriwell/Datos/'
+    urlfiles=['CR6Irriwell1Router_tzs.dat','CR6Irriwell2Meteo_tzs.dat','CR6Irriwell3_tzs.dat','CR6Irriwell4_tzs.dat','CR6Irriwell2Meteo_Met30.dat']
+    urls=[urlbase+x for x in urlfiles]
+    dfs=[]
+    for url in urls:
+        df = pd.read_csv(url, storage_options={'Authorization': b'Basic %s' % b64encode(b'gruporec:estoma')},skiprows=[0,2,3])
+        df['TIMESTAMP']= pd.to_datetime(df['TIMESTAMP'], format='%Y-%m-%d %H:%M:%S')
+        df['TIMESTAMP']= df['TIMESTAMP'].round('30min')
+        dfs.append(df)
+    tzs_y_meteo={}
+    for i in range(len(urlfiles)):
+        tzs_y_meteo[urlfiles[i].replace(".dat","")]=dfs[i]
+    return tzs_y_meteo
+
+def irr2db():
+    import pandas as pd
+    '''función que descarga del servidor los datos de tzs y meteo de irriwell, actualiza la base de datos y los devuelve en forma de diccionario'''
+    from base64 import b64encode
+    urlbase='http://gruporec.csic.es/Irriwell/Datos/'
+    urlfiles=['CR6Irriwell1Router_tzs.dat','CR6Irriwell2Meteo_tzs.dat','CR6Irriwell3_tzs.dat','CR6Irriwell4_tzs.dat','CR6Irriwell2Meteo_Met30.dat']
+    urls=[urlbase+x for x in urlfiles]
+    dfs=[]
+    for url in urls:
+        df = pd.read_csv(url, storage_options={'Authorization': b'Basic %s' % b64encode(b'gruporec:estoma')},skiprows=[0,2,3])
+        df['TIMESTAMP']= pd.to_datetime(df['TIMESTAMP'], format='%Y-%m-%d %H:%M:%S')
+        df['TIMESTAMP']= df['TIMESTAMP'].round('30min')
+        dfs.append(df)
+    tzs_y_meteo={}
+    for i in range(len(urlfiles)):
+        data_table=urlfiles[i].replace(".dat","")
+        tzs_y_meteo[data_table]=dfs[i]
+        #Esto es necesario para que las querys de SQL no den problemas ccon caracteres especiales:
+        dfs[i].columns=dfs[i].columns.str.lower()
+        dfs[i].columns=dfs[i].columns.str.replace("[.()]",'_',regex='True')  
+        crea_o_actualiza_tabla(data_table,dfs[i])       
+    return tzs_y_meteo
 
 def crea_o_actualiza_tabla(db, df):
     import sqlite3
@@ -89,3 +128,15 @@ def adapt_dfg(dfg,date):
     #Eliminamos las filas vacias (las que tienen NaT en la columna de timestamp)
     dfg = dfg.dropna(subset=['timestamp']).reset_index(drop=True)
     return(dfg)
+
+def lee_tablas():
+    import sqlite3
+    #Para leer las tablas de la base de datos
+    DATABASE='../db.sqlite3'
+    con = sqlite3.connect(DATABASE)
+    sql_query="SELECT name FROM sqlite_master WHERE type='table';"
+    res = con.execute(sql_query)
+    #Hay que añadir lo siguiente porque res.fetchall() devuelve un array de tuplas, no un array de nombres de tablas. Solo nos interesa el primer elemento de cada tupla, que es el nombre de la tabla
+    tables = [row[0] for row in res.fetchall()] 
+    con.close()
+    return(tables)

@@ -8,32 +8,10 @@ import pandas as pd
 import io
 import re
 import unicodedata
-from .dfg2db import crea_o_actualiza3,lee_tablas, db2df, gs_days
+from .dfg2db import crea_o_actualiza_tabla,lee_tablas, db2df, gs_days, adapt_dfg
 
 DBTABLE='gs_irriwell2023'
 DATABASE='../db.sqlite3'
-
-def adapt_dfg(dfg,date):
-    dfg.columns = [unicodedata.normalize('NFKD', col).encode('ASCII', 'ignore').decode().lower() for col in dfg.columns]
-    #eliminamos espacios
-    dfg.columns=[x.replace(' ','_') for x in dfg.columns]
-    #eliminamos almohadilla
-    dfg.columns=[x.replace('#','_num') for x in dfg.columns]
-    #eliminamos puntos, barra inclinada y comilla
-    dfg.columns=[x.replace('.','_').replace('/','_').replace("'",'_') for x in dfg.columns]
-    # Eliminar las columnas duplicadas de forma sucinta y eficiente
-    dfg = dfg.loc[:, ~dfg.columns.duplicated()]    
-    #Para crear la columna 'timestamp' con fecha y hora:
-    dfg['time']=pd.to_datetime(dfg['time'], format='%H:%M:%S')#.round("30min") esta parte mejor no hacerla para no perder info
-    dfg['date']=pd.to_datetime(date, format='%d.%m.%Y')
-    # Combina la fecha y la hora en un solo objeto datetime
-    dfg['timestamp'] = dfg['date'].dt.strftime('%Y-%m-%d') + ' ' + dfg['time'].dt.strftime('%H:%M:%S')
-    dfg['timestamp']=pd.to_datetime(dfg['timestamp'])
-    dfg = dfg.drop('time', axis=1)
-    dfg = dfg.drop('date', axis=1)
-    #Eliminamos las filas vacias (las que tienen NaT en la columna de timestamp)
-    dfg = dfg.dropna(subset=['timestamp']).reset_index(drop=True)
-    return(dfg)
 
 def upload_view(request):
     if request.method == "POST": #and request.FILES.getlist("files"):
@@ -59,7 +37,7 @@ def upload_view(request):
                     print(sheet)
                     df=pd.read_excel(myexcelfile,sheet_name=sheet,skiprows=[1],usecols=range(38))
                     df=adapt_dfg(df,sheet)
-                    crea_o_actualiza3(DBTABLE,df)
+                    crea_o_actualiza_tabla(DBTABLE,df)
     
                 #df = pd.read_excel(io.BytesIO(content),sheet_name=0,engine='openpyxl')
                 #dfs.append(df)#.to_dict())

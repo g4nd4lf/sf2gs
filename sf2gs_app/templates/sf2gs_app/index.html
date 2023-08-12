@@ -8,8 +8,49 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
     <script>
+        
         document.addEventListener('DOMContentLoaded', function(event) {
+            function getCookie(name) {
+            var value = "; " + document.cookie;
+            var parts = value.split("; " + name + "=");
+            if (parts.length == 2) return parts.pop().split(";").shift();
+        }
+        function plot(start_date,end_date,station=1,tree=1,thermocouple_depth=0){
+            console.log("click!");
+            const csrftoken = getCookie('csrftoken');
+            fetch("{% url 'plot' %}", {
+                method: "POST",
+                headers: {
+                //'Accept': 'application/json, text/plain, */*',
+                //'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado
+            },
+                body: JSON.stringify(
+                    { "start_date" : start_date,
+                        "end_date" : end_date,
+                        "station" : station,
+                        "tree": tree,
+                        "thermocouple_depth":thermocouple_depth
+                       },
+                )
+            })
+            //.then(response => response.json()) //var dat =JSON.parse("{{ data |escapejs }}")
+            .then(
+                //response => JSON.parse(response)
+                response=>response.json()
+            )
+            .then(data => {
+                console.log(data);
+                // Handle the response from the server
+            })
+            .catch(error => {
+                console.error("Error uploading files:", error);
+            });
+        }
+            
             console.log("PAGINA CARGADA")
+            let start_date
+            let end_date
             const datepicker=new Litepicker({
                 element: document.getElementById('demo'),
                 singleMode: false,
@@ -24,19 +65,24 @@
                     picker.on('selected', (date1, date2) => {
                         console.log('Fecha de inicio:', date1);
                         console.log('Fecha de fin:', date2);
+                        start_date=date1;
+                        end_date=date2;
                     });
                 },
             })
-            const startDate = new Date("{{ rangedate.start }}");
-            const endDate = new Date("{{ rangedate.end }}");            
-            datepicker.setDateRange(startDate, endDate);
-            
+            const def_start_Date = new Date("{{ rangedate.start }}");
+            const def_end_Date = new Date("{{ rangedate.end }}");            
+            datepicker.setDateRange(def_start_Date, def_end_Date);
+            start_date=def_start_Date;
+            end_date=def_end_Date;
+            document.querySelector('#plot_button').onclick = ()=>{plot(start_date,end_date)};
         });
         //document.querySelector('#demo').addEventListener("change", function(event) {}
     </script>
     <title>Js graphs</title>
 </head>
 <body>
+    {% csrf_token %}
     <aside class="menu">
         <div class="grupo">
             <h2>Station</h2>

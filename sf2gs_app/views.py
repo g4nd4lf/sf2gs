@@ -10,6 +10,16 @@ DBTABLE='gs_irriwell2023'
 DATABASE='../db.sqlite3'
 #def index(request):
 #    return render(request, "sf2gs_app/index2.html")
+def plot_view(request):
+    if request.method == "POST":
+        body_unicode = request.body.decode('utf-8')
+        data = json.loads(body_unicode)
+        start_date = data['start_date']
+        #data= json.loads(request.body)
+        print(start_date)
+        response_data = {'datos': data}
+        return JsonResponse(response_data)
+    
 def index_pru(request):
     #Ejemplo de como enviar graficas
 

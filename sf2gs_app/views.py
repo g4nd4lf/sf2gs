@@ -4,7 +4,10 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 import json
 from django.shortcuts import render
-from .dfg2db import crea_o_actualiza_tabla,lee_tablas, db2df, gs_days,irr2db, adapt_dfg, gs_days
+from .dfg2db import crea_o_actualiza_tabla,lee_tablas, db2df, gs_days,irr2db, adapt_dfg, gs_days, obtiene_tzyvpd, calculaJs_VPD
+import plotly.express as px
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 
 DBTABLE='gs_irriwell2023'
 DATABASE='../db.sqlite3'
@@ -12,12 +15,34 @@ DATABASE='../db.sqlite3'
 #    return render(request, "sf2gs_app/index2.html")
 def plot_view(request):
     if request.method == "POST":
+        meteo_table='CR6Irriwell2Meteo_Met30'
         body_unicode = request.body.decode('utf-8')
         data = json.loads(body_unicode)
         start_date = data['start_date']
+        end_date = data['end_date']
+        station=data['station']
+        tree=data['tree']
+        thermocouple_depth=data['thermocouple_depth']
         #data= json.loads(request.body)
         print(start_date)
-        response_data = {'datos': data}
+        tz_tables=['CR6Irriwell1Router_tzs','CR6Irriwell2Meteo_tzs','CR6Irriwell3_tzs','CR6Irriwell4_tzs']
+        s=tz_tables.index(station)+1
+        label=f"S{s}T{tree}d{thermocouple_depth}"
+        fig = make_subplots(rows=1, cols=1,subplot_titles=[label],horizontal_spacing = 0.05,vertical_spacing=0.05)
+        fig.update_layout(boxmode='overlay', width=800, height=500)
+        Jslimit=60
+        tz_table=station
+        df_tz=obtiene_tzyvpd(tz_table,meteo_table)
+        df_Js_VPD=calculaJs_VPD(df_tz)
+        dfmar=df_Js_VPD.query("timestamp>='2023-03-01'").query(f"arbol=={tree} and Js<={Jslimit} and sup=={int(not(thermocouple_depth))}")
+        timestamps = pd.to_datetime(dfmar.index.get_level_values('timestamp'))
+        dfmar['month'] = timestamps.month
+        scatter1 = px.scatter(dfmar, x="vpd", y="Js", color="month", color_continuous_scale='viridis',
+                    title="Js vs vpd")
+        scatter1.update_traces(marker=dict(size=6, opacity=0.6), selector=dict(mode='markers'))
+        fig.add_trace(scatter1['data'][0], row=1, col=1)
+        chart = fig.to_json()
+        response_data = {'chart': chart}
         return JsonResponse(response_data)
     
 def index_pru(request):

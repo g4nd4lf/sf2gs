@@ -140,3 +140,64 @@ def lee_tablas():
     tables = [row[0] for row in res.fetchall()] 
     con.close()
     return(tables)
+
+def obtiene_tzyvpd(tz_file,meteo_file):
+    import pandas as pd
+    #Leemos de la base de datos las medidas de tz y meteo
+    tzs_i1=db2df(tz_file)
+    meteo=db2df(meteo_file)
+    
+    # unimos los dos conjuntos de datos haciendo coincidir los timestamps
+    df = pd.merge(tzs_i1, meteo, on='timestamp', how='inner')
+    
+    #Vamos a expandir el dataframe, porque no quiero los tzs como columnas diferentes en una misma fila
+    #sino que cada uno tenga su propia fila y un valor de 'arbol' y 'sup' que defina que termopar concreto es
+    #Primero se definen las columnas que no van a modfiicarse, osea aquellas que no contengan 'tz' en su nombre
+    cols_nochange=[x for x in df.columns if 'tz' not in x]
+    #Usamos la funcion melt para expandir las columnas con tz
+    df = df.melt(id_vars=cols_nochange,
+                 var_name='tz_label',
+                 value_name='tz')
+    #así defino la correspondencia entre cada etiqueta y el (arbol,termopar) que representan
+    #sup=1 para el termopar más superficial y sup=0 para el menos superficial
+    #(revisar en campo que esto coincide con el orden de medida en el datalogger de cada termopar)
+    tr={'tz1_1_':(1,1),'tz1_2_':(1,0),'tz1_3_':(2,1),'tz1_4_':(2,0)}
+    arbol=[tr[x][0] for x in df['tz_label']]
+    sup=[tr[x][1] for x in df['tz_label']]
+    #df2=df.copy()
+    df['arbol']=arbol
+    df['sup']=sup
+    #df.head()
+    #Agrupamos, haciendo media, por timestamp, arbol y termopar. 
+    #Como solo hay un valor en el que coincidan estos 3 parametros la media es irrelevante
+    dfg=df.groupby(['timestamp', 'arbol','sup']).mean(numeric_only=True)
+    dfg=dfg.rename(columns={'vpd_avg': 'vpd'})
+    dfg=dfg.rename(columns={'rad_par_avg': 'par'})
+    #df=dfg[['tz','vpd']]
+    df=dfg[['tz','vpd','par']]
+    return df
+    
+#Calculamos Js/VPD:
+def calculaJs_VPD(df):
+    import pandas as pd
+    def tz2Js(tz):
+        a_0=-0.5984
+        a_1=1.4873
+        a_2=0.054
+        #wood parameters
+        Fwood= 0.381877421946182#0.156 #Fraction_wood
+        Fwat= 0.343890128864018#0.756 #Fraction_water
+        FactorX=0.441
+        Vc2J=FactorX*Fwood+Fwat #0.824796
+    
+        #Heat pulse velocity (cm/h)
+        hpv=3600*(1-0.5)/(2*tz)
+        #Corrected heat pulse velocity (cm/h)
+        hpvc=a_0+a_1*hpv+a_2*hpv**2
+        Js=hpvc*Vc2J
+        return(Js)
+    df['Js'] = df.apply(lambda row: tz2Js(row['tz']), axis=1)
+    df['Js_VPD'] = df.apply(lambda row: tz2Js(row['tz']) / row['vpd'] if row['vpd']>0.01 else pd.NA, axis=1)
+    
+    df=df.dropna()
+    return df

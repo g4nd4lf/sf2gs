@@ -15,7 +15,21 @@
             var parts = value.split("; " + name + "=");
             if (parts.length == 2) return parts.pop().split(";").shift();
         }
-        function plot(start_date,end_date,station=1,tree=1,thermocouple_depth=0){
+        function plot(start_date,end_date){//,station=1,tree=1,thermocouple_depth=0){
+            //const elem=document.getElementById("#sel_station")
+            const station=document.querySelector("#sel_station").selectedOptions[0].value
+            const tree=document.querySelector("#sel_tree").selectedOptions[0].value
+            const depth=document.querySelector("#sel_depth").selectedOptions[0].value
+            //const elem=document.querySelector("#sel_station")
+            //const sel_stations = elem.selectElement.selectedOptions;
+            
+            //const sel_stations = document.getElementById("#sel_station").selectElement.selectedOptions;
+            //const stations=sel_stations.map((opt)=>opt.value)
+            //const station=stations[0]
+            //const sel_tree = document.getElementById("#sel_tree").selectElement.selectedOptions;
+            //const tree=sel_tree.map((opt)=>opt.value)[0]
+            //const sel_depth = document.getElementById("#sel_depth").selectElement.selectedOptions;
+            //const depth=sel_depth.map((opt)=>opt.value)[0]
             console.log("click!");
             const csrftoken = getCookie('csrftoken');
             fetch("{% url 'plot' %}", {
@@ -30,7 +44,7 @@
                         "end_date" : end_date,
                         "station" : station,
                         "tree": tree,
-                        "thermocouple_depth":thermocouple_depth
+                        "thermocouple_depth":depth
                        },
                 )
             })
@@ -40,7 +54,10 @@
                 response=>response.json()
             )
             .then(data => {
-                console.log(data);
+                //console.log(data["chart"]);
+                const chart =JSON.parse(data["chart"])
+                //var layout= JSON.parse("{{ layout|escapejs }}")
+                Plotly.newPlot('chart1', chart)
                 // Handle the response from the server
             })
             .catch(error => {
@@ -75,7 +92,9 @@
             datepicker.setDateRange(def_start_Date, def_end_Date);
             start_date=def_start_Date;
             end_date=def_end_Date;
-            document.querySelector('#plot_button').onclick = ()=>{plot(start_date,end_date)};
+            
+            
+            document.querySelector('#plot_button').onclick = ()=>{plot(start_date,end_date)};//,station=station,tree=tree,thermocouple_depth=depth)};
         });
         //document.querySelector('#demo').addEventListener("change", function(event) {}
     </script>
@@ -86,7 +105,7 @@
     <aside class="menu">
         <div class="grupo">
             <h2>Station</h2>
-            <select multiple>
+            <select multiple id='sel_station'>
                 {% for s in stations %}
                 <option value="{{ s.str }}">{{ s.str }}</option>
                 {% endfor %}
@@ -94,14 +113,14 @@
         </div>
         <div class="grupo">
             <h2>Tree</h2>
-            <select multiple class="sel2elem">
+            <select multiple class="sel2elem" id='sel_tree'>
                 <option value="1">Tree 1</option>
                 <option value="2">Tree 2</option>
             </select>
         </div>
         <div class="grupo">
             <h2>Therm. depth</h2>
-            <select multiple class="sel2elem">
+            <select multiple class="sel2elem" id='sel_depth'>
                 <option value="0">Shallow</option>
                 <option value="1">Depth</option>
             </select>
@@ -123,7 +142,7 @@
         </div>
     </aside>
     <div id="container">
-        <div id="graf1"></div>
+        <div id="chart1"></div>
         <div id="graf2"></div>
     </div>
     <script>

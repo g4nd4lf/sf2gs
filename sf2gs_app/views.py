@@ -72,6 +72,7 @@ def index(request):
                 )
 
 def upload_file(request):
+    import io, re
     if request.method == "POST": #and request.FILES.getlist("files"):
         #files = request.FILES.getlist("files")
         files = request.FILES.getlist("files")

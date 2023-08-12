@@ -30,7 +30,7 @@
             const startDate = new Date("{{ rangedate.start }}");
             const endDate = new Date("{{ rangedate.end }}");            
             datepicker.setDateRange(startDate, endDate);
-
+            
         });
         //document.querySelector('#demo').addEventListener("change", function(event) {}
     </script>
@@ -46,16 +46,16 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="grupo2elem">
+        <div class="grupo">
             <h2>Tree</h2>
-            <select multiple>
+            <select multiple class="sel2elem">
                 <option value="1">Tree 1</option>
                 <option value="2">Tree 2</option>
             </select>
         </div>
-        <div class="grupo2elem">
+        <div class="grupo">
             <h2>Therm. depth</h2>
-            <select multiple>
+            <select multiple class="sel2elem">
                 <option value="0">Shallow</option>
                 <option value="1">Depth</option>
             </select>
@@ -72,8 +72,8 @@
             <h2>Js Date</h2>
             <input type="text" id="demo">
         </div>
-        <div id="refresh_div">
-            <button id="refresh_button"> Refresh </button>
+        <div id="plot_button">
+            <button id="plot_button"> Plot </button>
         </div>
     </aside>
     <div id="container">

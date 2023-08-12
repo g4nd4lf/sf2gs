@@ -6,11 +6,11 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #bd1c1c;
+    background-color: #94a2be;;
 }
 
 .menu {
-    background-color: #bd1c1c;
+    background-color: #fff;
     border: 1px solid #ccc;
     padding: 20px;
     border-radius: 5px;
@@ -18,11 +18,16 @@ body {
 }
 
 .grupo {
-    margin-bottom: 0px;
+    margin-bottom: 20px;
+}
+
+.sel2elem {
+    max-height: 70px;
 }
 
 h2 {
     margin-top: 0;
+    margin-bottom: 10px;
 }
 
 select {
@@ -37,11 +42,12 @@ select {
 option {
     padding: 5px;
 }
-#refresh_div{
+#plot_button{
     background-color:#fff;
     display: flex;
     justify-content: center;
     align-items: center;
+    min-width: 80px;
 }
 #container {
     display: flex;
@@ -50,5 +56,5 @@ option {
 
 #graf1,#graf2
 {
-width: 600px
+width: 600px;
 }

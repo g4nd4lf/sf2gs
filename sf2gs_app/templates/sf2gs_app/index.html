@@ -16,7 +16,8 @@
             if (parts.length == 2) return parts.pop().split(";").shift();
         }
         function plot(start_date,end_date){//,station=1,tree=1,thermocouple_depth=0){
-            //const elem=document.getElementById("#sel_station")
+            document.getElementById("loading").style.display = "block";
+
             const station=document.querySelector("#sel_station").selectedOptions[0].value
             const tree=document.querySelector("#sel_tree").selectedOptions[0].value
             const depth=document.querySelector("#sel_depth").selectedOptions[0].value
@@ -30,7 +31,7 @@
             //const tree=sel_tree.map((opt)=>opt.value)[0]
             //const sel_depth = document.getElementById("#sel_depth").selectElement.selectedOptions;
             //const depth=sel_depth.map((opt)=>opt.value)[0]
-            console.log("click!");
+            //console.log("click!");
             const csrftoken = getCookie('csrftoken');
             fetch("{% url 'plot' %}", {
                 method: "POST",
@@ -58,6 +59,8 @@
                 const chart =JSON.parse(data["chart"])
                 //var layout= JSON.parse("{{ layout|escapejs }}")
                 Plotly.newPlot('chart1', chart)
+                document.getElementById("loading").style.display = "none";
+
                 // Handle the response from the server
             })
             .catch(error => {
@@ -125,14 +128,16 @@
                 <option value="1">Depth</option>
             </select>
         </div>
-        <div class="grupo">
+        <!--
+        <div id="div_gs">
             <h2>Gs days</h2>
-            <select multiple>
+            <select multiple >
                 {% for d in gsdays %}
                 <option value="{{ d.str }}">{{ d.str }}</option>
                 {% endfor %}
             </select>
         </div>
+        -->
         <div class="grupo">
             <h2>Js Date</h2>
             <input type="text" id="demo">
@@ -141,9 +146,10 @@
             <button id="plot_button"> Plot </button>
         </div>
     </aside>
-    <div id="container">
+    <div id="chart_container">
+        <div id="loading" class="loading"></div>
         <div id="chart1"></div>
-        <div id="graf2"></div>
+        <div id="chart2"></div>
     </div>
     <script>
         

@@ -18,8 +18,12 @@ def plot_view(request):
         meteo_table='CR6Irriwell2Meteo_Met30'
         body_unicode = request.body.decode('utf-8')
         data = json.loads(body_unicode)
-        start_date = data['start_date']
-        end_date = data['end_date']
+        if type(data['start_date'])==type(""):
+            start_date = data['start_date'].split("T")[0]
+            end_date = data['end_date'].split("T")[0]
+        else:
+            start_date = data['start_date']['dateInstance'].split("T")[0]
+            end_date = data['end_date']['dateInstance'].split("T")[0]
         station=data['station']
         tree=data['tree']
         thermocouple_depth=data['thermocouple_depth']
@@ -28,19 +32,22 @@ def plot_view(request):
         tz_tables=['CR6Irriwell1Router_tzs','CR6Irriwell2Meteo_tzs','CR6Irriwell3_tzs','CR6Irriwell4_tzs']
         s=tz_tables.index(station)+1
         label=f"S{s}T{tree}d{thermocouple_depth}"
-        fig = make_subplots(rows=1, cols=1,subplot_titles=[label],horizontal_spacing = 0.05,vertical_spacing=0.05)
+        fig = make_subplots(rows=1, cols=1,subplot_titles=[label],horizontal_spacing = 0.5,vertical_spacing=0.5)
         fig.update_layout(boxmode='overlay', width=800, height=500)
         Jslimit=60
         tz_table=station
         df_tz=obtiene_tzyvpd(tz_table,meteo_table)
         df_Js_VPD=calculaJs_VPD(df_tz)
-        dfmar=df_Js_VPD.query("timestamp>='2023-03-01'").query(f"arbol=={tree} and Js<={Jslimit} and sup=={int(not(thermocouple_depth))}")
+        #dfmar=df_Js_VPD.query("timestamp>='2023-03-01'").query(f"arbol=={tree} and Js<={Jslimit} and sup=={int(not(thermocouple_depth))}")
+        dfmar=df_Js_VPD.query(f"timestamp>='{start_date}'").query(f"timestamp<='{end_date}'").query(f"arbol=={tree} and Js<={Jslimit} and sup=={int(not(thermocouple_depth))}")
         timestamps = pd.to_datetime(dfmar.index.get_level_values('timestamp'))
         dfmar['month'] = timestamps.month
         scatter1 = px.scatter(dfmar, x="vpd", y="Js", color="month", color_continuous_scale='viridis',
                     title="Js vs vpd")
         scatter1.update_traces(marker=dict(size=6, opacity=0.6), selector=dict(mode='markers'))
         fig.add_trace(scatter1['data'][0], row=1, col=1)
+        fig.update_xaxes(title_text="VPD")
+        fig.update_yaxes(title_text="Js")
         chart = fig.to_json()
         response_data = {'chart': chart}
         return JsonResponse(response_data)

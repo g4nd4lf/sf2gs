@@ -3,8 +3,8 @@ body {
     margin: 0;
     padding: 0;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: left;
+    align-items: left;
     min-height: 100vh;
     background-color: #94a2be;;
 }
@@ -49,12 +49,41 @@ option {
     align-items: center;
     min-width: 80px;
 }
-#container {
+#chart_container {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    width:800px; 
+    height:500px;
 }
 
 #graf1,#graf2
 {
 width: 600px;
 }
+
+#div_gs
+{
+    height: 0;
+    visibility: hidden;
+}
+
+.loading {
+    position: absolute;
+    display: none;
+    width: 40px;
+    height: 40px;
+    margin: 0 auto;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 2s linear infinite;
+    z-index: 10;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  

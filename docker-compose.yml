@@ -1,0 +1,15 @@
+version: '3'
+services:
+  vales:
+    build: .
+    image: sf2gs_app-v0.0
+    container_name: sf2gs
+    restart: unless-stopped
+    volumes:
+      - ./db:/home/app/webapp/db
+      - ../extraFiles:/home/app/webapp/sf2gs/extra_files
+      - ../media:/home/app/webapp/sf2gs/media
+    ports:
+      - 8006:8006
+  
+  

@@ -25,9 +25,12 @@ SECRET_KEY = 'django-insecure-bh4w(n8s(e_)ssqq(0jrqg@a7s7eedyz(sndf79)v=wvxlng!@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['gruporec2.csic.es','127.0.0.1']
 
-
+CORS_ALLOWED_ORIGINS = [
+    "https://gruporec2.csic.es",
+]
+CSRF_TRUSTED_ORIGINS = ['https://gruporec2.csic.es']
 # Application definition
 
 INSTALLED_APPS = [
@@ -117,7 +120,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = 'sf2gs/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

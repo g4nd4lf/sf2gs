@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  vales:
+    networks:
+      - proxy
+    labels:
+      - caddy= "${FQDN}"
+      - caddy.handle="${MYPATH}"
+      - caddy.handle.reverse_proxy="{{upstreams 8006}}"
+      - caddy.tls= "/root/certs/gruporec2_csic_es.crt" "/root/certs/gruporec2.key"
+networks:
+  proxy:
+    external: true

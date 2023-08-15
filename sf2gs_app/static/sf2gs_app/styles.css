@@ -42,13 +42,16 @@ select {
 option {
     padding: 5px;
 }
-#plot_button{
+
+#div_buttons,#plot_button {
     background-color:#fff;
     display: flex;
     justify-content: center;
     align-items: center;
     min-width: 80px;
+    margin: 7px;
 }
+
 #chart_container {
     display: flex;
     flex-wrap: wrap;

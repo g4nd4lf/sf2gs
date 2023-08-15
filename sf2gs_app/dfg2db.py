@@ -37,13 +37,127 @@ def irr2db():
         #Esto es necesario para que las querys de SQL no den problemas ccon caracteres especiales:
         dfs[i].columns=dfs[i].columns.str.lower()
         dfs[i].columns=dfs[i].columns.str.replace("[.()]",'_',regex='True')  
+        df2db(dfs[i],data_table)       
+    return tzs_y_meteo
+
+def irr2db2():
+    import pandas as pd
+    '''función que descarga del servidor los datos de tzs y meteo de irriwell, actualiza la base de datos y los devuelve en forma de diccionario'''
+    from base64 import b64encode
+    urlbase='http://gruporec.csic.es/Irriwell/Datos/'
+    urlfiles=['CR6Irriwell1Router_tzs.dat','CR6Irriwell2Meteo_tzs.dat','CR6Irriwell3_tzs.dat','CR6Irriwell4_tzs.dat','CR6Irriwell2Meteo_Met30.dat']
+    urls=[urlbase+x for x in urlfiles]
+    dfs=[]
+    for url in [urls[0]]:
+        df = pd.read_csv(url, storage_options={'Authorization': b'Basic %s' % b64encode(b'gruporec:estoma')},skiprows=[0,2,3])
+        df['TIMESTAMP']= pd.to_datetime(df['TIMESTAMP'], format='%Y-%m-%d %H:%M:%S')
+        df['TIMESTAMP']= df['TIMESTAMP'].round('30min')
+        dfs.append(df)
+    tzs_y_meteo={}
+    for i in range(len([urlfiles[0]])):
+        data_table=urlfiles[i].replace(".dat","")
+        tzs_y_meteo[data_table]=dfs[i]
+        #Esto es necesario para que las querys de SQL no den problemas ccon caracteres especiales:
+        dfs[i].columns=dfs[i].columns.str.lower()
+        dfs[i].columns=dfs[i].columns.str.replace("[.()]",'_',regex='True')  
         crea_o_actualiza_tabla(data_table,dfs[i])       
     return tzs_y_meteo
+def df2db2(df, db):
+    import sqlite3
+    import pandas as pd
+    print(f"Updating {db}")
+    DATABASE='./db/db.sqlite3'
+    #Convertir indices a columnas
+    df=df.reset_index()
+    if 'index' in df.columns:
+        del df['index']
+    # Eliminar duplicados del DataFrame
+    df = df.drop_duplicates()    
+    # Crear conexión a la base de datos
+    con = sqlite3.connect(DATABASE)
+    cur = con.cursor()
+    # Crear la tabla si no existe
+    #2. Creamos la tabla db vacia si no existe
+    columnas = df.columns.tolist()
+    field_names=', '.join(columnas) #para generar los campos que requieren las consulta sql
+    #min_field_names = ", ".join([f"MIN({col})" for col in columnas])
+    placeholders = ', '.join(['?'] * len(columnas))
+    
+    if db not in lee_tablas():
+        #index_and_fields='id INTEGER PRIMARY KEY AUTOINCREMENT, '+field_names
+        consulta = f"CREATE TABLE {db} ({field_names});"
+        print(consulta)
+        cur.execute(consulta)
+    
+    insert_query = f"INSERT INTO {db} VALUES ({placeholders})"
+    # Iniciar una transacción
+    con.execute("BEGIN TRANSACTION;")
+    for _, row in df.iterrows():
+        #row['timestamp']=row['timestamp'].strftime("%Y-%m-%d %H:%M:%S")
+        if isinstance(row['timestamp'], pd.Timestamp):
+            row['timestamp']=row['timestamp'].strftime("%Y-%m-%d %H:%M:%S")
+        cur.execute(insert_query, tuple(row))        
+    # Confirmar la transacción
+    con.execute("COMMIT;")
+    #Eliminamos duplicados:
+    query = f"""
+        DELETE FROM {db}
+        WHERE rowid NOT IN (
+        SELECT MIN(rowid)
+        FROM {db}
+        GROUP BY {field_names}
+        );
+    """
+    cur.execute(query)
+    # Confirmar la transacción
+    con.execute("COMMIT;")
+    # Cerrar la conexión
+    con.close()
+    print(f"Database {db} updated")
+    return df
+
+def df2db(df, db):
+    import sqlite3
+    import pandas as pd
+    print(f"Updating {db}")
+    DATABASE='./db/db.sqlite3'
+    #Convertir indices a columnas
+    df=df.reset_index()
+    if 'index' in df.columns:
+        del df['index']
+    # Eliminar duplicados del DataFrame
+    df = df.drop_duplicates()    
+    # Crear conexión a la base de datos
+    con = sqlite3.connect(DATABASE)
+    cur = con.cursor()
+    # Crear la tabla si no existe
+    #2. Creamos la tabla db vacia si no existe
+    columnas = df.columns.tolist()
+    field_names=', '.join(columnas) #para generar los campos que requieren las consulta sql
+    
+    df.to_sql(db, con, if_exists='append', index=False)
+
+    #Eliminamos duplicados:
+    query = f"""
+        DELETE FROM {db}
+        WHERE rowid NOT IN (
+        SELECT MIN(rowid)
+        FROM {db}
+        GROUP BY {field_names}
+        );
+    """
+    cur.execute(query)
+    # Confirmar la transacción
+    con.execute("COMMIT;")
+    # Cerrar la conexión
+    con.close()
+    print(f"Database {db} updated")
+    return df
 
 def crea_o_actualiza_tabla(db, df):
     import sqlite3
     from datetime import datetime
-    DATABASE='../db.sqlite3'
+    DATABASE='./db/db.sqlite3'
     # Eliminar duplicados del DataFrame
     df = df.drop_duplicates()    
     # Crear conexión a la base de datos
@@ -75,7 +189,19 @@ def crea_o_actualiza_tabla(db, df):
 
 def lee_tablas():
     import sqlite3
-    DATABASE='../db.sqlite3'
+    import os
+    DATABASE='./db/db.sqlite3'
+    DATABASE_ABSOLUTE = os.path.abspath(DATABASE)
+    #print("Ruta absoluta de la base de datos:", DATABASE_ABSOLUTE)
+    # Obtén el directorio actual
+    directorio_actual = os.getcwd()
+    #print(directorio_actual)
+    # Lista los archivos en el directorio actual
+    archivos = os.listdir(directorio_actual)
+    archivos.append(DATABASE_ABSOLUTE)
+    # Filtra solo los archivos (excluyendo directorios)
+    #archivos = [archivo for archivo in archivos if os.path.isfile(os.path.join(directorio_actual, archivo))]
+
     #Para leer las tablas de la base de datos
     con = sqlite3.connect(DATABASE)
     sql_query="SELECT name FROM sqlite_master WHERE type='table';"
@@ -83,13 +209,15 @@ def lee_tablas():
     #Hay que añadir lo siguiente porque res.fetchall() devuelve un array de tuplas, no un array de nombres de tablas. Solo nos interesa el primer elemento de cada tupla, que es el nombre de la tabla
     tables = [row[0] for row in res.fetchall()] 
     con.close()
+    #tables=[DATABASE_ABSOLUTE,"dos"]
+    #tables=archivos
     return(tables)
 
 def db2df(table):
     import sqlite3
     import pandas as pd
     '''Function to read a table from the db and print the resulting df'''
-    DATABASE='../db.sqlite3'
+    DATABASE='./db/db.sqlite3'
     con = sqlite3.connect(DATABASE)
     sql_query = "SELECT * FROM '"+table+"';"
     df = pd.read_sql(sql_query, con)
@@ -129,17 +257,17 @@ def adapt_dfg(dfg,date):
     dfg = dfg.dropna(subset=['timestamp']).reset_index(drop=True)
     return(dfg)
 
-def lee_tablas():
-    import sqlite3
-    #Para leer las tablas de la base de datos
-    DATABASE='../db.sqlite3'
-    con = sqlite3.connect(DATABASE)
-    sql_query="SELECT name FROM sqlite_master WHERE type='table';"
-    res = con.execute(sql_query)
-    #Hay que añadir lo siguiente porque res.fetchall() devuelve un array de tuplas, no un array de nombres de tablas. Solo nos interesa el primer elemento de cada tupla, que es el nombre de la tabla
-    tables = [row[0] for row in res.fetchall()] 
-    con.close()
-    return(tables)
+# def lee_tablas():
+#     import sqlite3
+#     #Para leer las tablas de la base de datos
+#     DATABASE='../db.sqlite3'
+#     con = sqlite3.connect(DATABASE)
+#     sql_query="SELECT name FROM sqlite_master WHERE type='table';"
+#     res = con.execute(sql_query)
+#     #Hay que añadir lo siguiente porque res.fetchall() devuelve un array de tuplas, no un array de nombres de tablas. Solo nos interesa el primer elemento de cada tupla, que es el nombre de la tabla
+#     tables = [row[0] for row in res.fetchall()] 
+#     con.close()
+#     return(tables)
 
 def obtiene_tzyvpd(tz_file,meteo_file):
     import pandas as pd

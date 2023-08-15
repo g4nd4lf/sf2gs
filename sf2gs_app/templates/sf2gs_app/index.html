@@ -4,18 +4,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'sf2gs_app/styles.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static '/sf2gs_app/styles.css' %}">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
     <script>
-        
+        var time0;
         document.addEventListener('DOMContentLoaded', function(event) {
             function getCookie(name) {
             var value = "; " + document.cookie;
             var parts = value.split("; " + name + "=");
             if (parts.length == 2) return parts.pop().split(";").shift();
         }
+        function updateDB(){
+            console.log("UPDATE!")
+            document.getElementById("loading").style.display = "block";
+            fetch("{% url 'updatedb' %}")
+            .then(response => response.json())
+            .then(data =>   {
+                            console.log(data);
+                            document.getElementById("loading").style.display = "none";
+                            }
+                );
+        }
+        
         function plot(start_date,end_date){//,station=1,tree=1,thermocouple_depth=0){
+            time0 = new Date();
             document.getElementById("loading").style.display = "block";
 
             const station=document.querySelector("#sel_station").selectedOptions[0].value
@@ -56,11 +69,17 @@
             )
             .then(data => {
                 //console.log(data["chart"]);
+                let time3= new Date();
+                console.log("time3: ",time3)
+                console.log("elapsed3: ",(time3-time0)/1000.0)
+                
                 const chart =JSON.parse(data["chart"])
                 //var layout= JSON.parse("{{ layout|escapejs }}")
                 Plotly.newPlot('chart1', chart)
                 document.getElementById("loading").style.display = "none";
-
+                let time4= new Date();
+                console.log("time4: ",time4)
+                console.log("elapsed4: ",(time4-time0)/1000.0)
                 // Handle the response from the server
             })
             .catch(error => {
@@ -98,6 +117,7 @@
             
             
             document.querySelector('#plot_button').onclick = ()=>{plot(start_date,end_date)};//,station=station,tree=tree,thermocouple_depth=depth)};
+            document.querySelector('#update_button').onclick = updateDB;
         });
         //document.querySelector('#demo').addEventListener("change", function(event) {}
     </script>
@@ -142,8 +162,10 @@
             <h2>Js Date</h2>
             <input type="text" id="demo">
         </div>
-        <div id="plot_button">
+        <div id="div_buttons">
+            <button id="update_button"> Update </button>
             <button id="plot_button"> Plot </button>
+
         </div>
     </aside>
     <div id="chart_container">

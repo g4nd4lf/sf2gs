@@ -6,7 +6,10 @@ body {
     justify-content: left;
     align-items: left;
     min-height: 100vh;
-    background-color: #94a2be;;
+    background-color: #94a2be;
+}
+#chart1 {
+    background-color: #94a2be;
 }
 
 .menu {
@@ -51,7 +54,9 @@ option {
     min-width: 80px;
     margin: 7px;
 }
-
+#js_daterange {
+    width: 100%
+}
 #chart_container {
     display: flex;
     flex-wrap: wrap;

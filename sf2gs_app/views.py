@@ -52,6 +52,9 @@ def plot_view(request):
         station=data['station']
         tree=data['tree']
         thermocouple_depth=data['thermocouple_depth']
+        vble_to_plot="Js" if data['vble_to_plot']=="Js" else "Js_VPD"
+        label_vble_to_plot="Js" if data['vble_to_plot']=="Js" else "Js/VPD"
+        
         #data= json.loads(request.body)
         print(start_date)
         #tz_tables=['CR6Irriwell1Router_tzs','CR6Irriwell2Meteo_tzs','CR6Irriwell3_tzs','CR6Irriwell4_tzs']
@@ -83,12 +86,14 @@ def plot_view(request):
         time1_6=time.time()
         print("time1_6: ", time1_6)
         print("elpased1_6: ",time1_6-time1)
-        scatter1 = px.scatter(dfmar, x="vpd", y="Js", color="month", color_continuous_scale='viridis',
+        scatter1 = px.scatter(dfmar, x="vpd", y=vble_to_plot, color="month", color_continuous_scale='viridis',
                     title="Js vs vpd")
         scatter1.update_traces(marker=dict(size=6, opacity=0.6), selector=dict(mode='markers'))
         fig.add_trace(scatter1['data'][0], row=1, col=1)
         fig.update_xaxes(title_text="VPD")
-        fig.update_yaxes(title_text="Js")
+        fig.update_yaxes(title_text=label_vble_to_plot)
+        fig.update_layout(coloraxis=dict(colorscale='viridis'), showlegend=True,paper_bgcolor='rgba(0,0,0,0)')
+        #paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)'
         time1_7=time.time()
         print("time1_7: ", time1_7)
         print("elpased1_7: ",time1_7-time1)

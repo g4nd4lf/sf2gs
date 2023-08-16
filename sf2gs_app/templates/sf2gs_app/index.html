@@ -11,87 +11,95 @@
         var time0;
         document.addEventListener('DOMContentLoaded', function(event) {
             function getCookie(name) {
-            var value = "; " + document.cookie;
-            var parts = value.split("; " + name + "=");
-            if (parts.length == 2) return parts.pop().split(";").shift();
-        }
-        function updateDB(){
-            console.log("UPDATE!")
-            document.getElementById("loading").style.display = "block";
-            fetch("{% url 'updatedb' %}")
-            .then(response => response.json())
-            .then(data =>   {
-                            console.log(data);
-                            document.getElementById("loading").style.display = "none";
-                            }
-                );
-        }
+                var value = "; " + document.cookie;
+                var parts = value.split("; " + name + "=");
+                if (parts.length == 2) return parts.pop().split(";").shift();
+            }
+            function updateDB(){
+                console.log("UPDATE!")
+                document.getElementById("loading").style.display = "block";
+                fetch("{% url 'updatedb' %}")
+                .then(response => response.json())
+                .then(data =>   {
+                                console.log(data);
+                                document.getElementById("loading").style.display = "none";
+                                }
+                    );
+            }
         
-        function plot(start_date,end_date){//,station=1,tree=1,thermocouple_depth=0){
-            time0 = new Date();
-            document.getElementById("loading").style.display = "block";
-
-            const station=document.querySelector("#sel_station").selectedOptions[0].value
-            const tree=document.querySelector("#sel_tree").selectedOptions[0].value
-            const depth=document.querySelector("#sel_depth").selectedOptions[0].value
-            //const elem=document.querySelector("#sel_station")
-            //const sel_stations = elem.selectElement.selectedOptions;
-            
-            //const sel_stations = document.getElementById("#sel_station").selectElement.selectedOptions;
-            //const stations=sel_stations.map((opt)=>opt.value)
-            //const station=stations[0]
-            //const sel_tree = document.getElementById("#sel_tree").selectElement.selectedOptions;
-            //const tree=sel_tree.map((opt)=>opt.value)[0]
-            //const sel_depth = document.getElementById("#sel_depth").selectElement.selectedOptions;
-            //const depth=sel_depth.map((opt)=>opt.value)[0]
-            //console.log("click!");
-            const csrftoken = getCookie('csrftoken');
-            fetch("{% url 'plot' %}", {
-                method: "POST",
-                headers: {
-                //'Accept': 'application/json, text/plain, */*',
-                //'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado
-            },
-                body: JSON.stringify(
-                    { "start_date" : start_date,
+            function plot(start_date,end_date){//,station=1,tree=1,thermocouple_depth=0){
+                time0 = new Date();
+                document.getElementById("loading").style.display = "block";
+                const vble_to_plot = document.querySelector('input[name="js_or_js_vpd"]:checked').value;
+                const stations_selected=document.querySelector("#sel_station").selectedOptions
+                const trees_selected=document.querySelector("#sel_tree").selectedOptions
+                const thermocouple_depths_selected=document.querySelector("#sel_depth").selectedOptions
+                if (stations_selected.length==0 || trees_selected.length==0 || thermocouple_depths_selected.length==0 ) {
+                    document.getElementById("loading").style.display = "none";
+                    alert("You must select a statio, a tree and a thermocouple depth to Plot!")
+                    return            
+                }
+                const station=stations_selected[0].value
+                const tree=trees_selected[0].value
+                const thermocouple_depth=thermocouple_depths_selected[0].value
+                //const elem=document.querySelector("#sel_station")
+                //const sel_stations = elem.selectElement.selectedOptions;
+                
+                //const sel_stations = document.getElementById("#sel_station").selectElement.selectedOptions;
+                //const stations=sel_stations.map((opt)=>opt.value)
+                //const station=stations[0]
+                //const sel_tree = document.getElementById("#sel_tree").selectElement.selectedOptions;
+                //const tree=sel_tree.map((opt)=>opt.value)[0]
+                //const sel_depth = document.getElementById("#sel_depth").selectElement.selectedOptions;
+                //const depth=sel_depth.map((opt)=>opt.value)[0]
+                //console.log("click!");
+                const csrftoken = getCookie('csrftoken');
+                fetch("{% url 'plot' %}", {
+                    method: "POST",
+                    headers: {
+                        //'Accept': 'application/json, text/plain, */*',
+                        //'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado
+                    },
+                    body: JSON.stringify(
+                        { "start_date" : start_date,
                         "end_date" : end_date,
                         "station" : station,
                         "tree": tree,
-                        "thermocouple_depth":depth
-                       },
+                        "thermocouple_depth":thermocouple_depth,
+                        "vble_to_plot":vble_to_plot
+                        },
+                    )
+                })
+                //.then(response => response.json()) //var dat =JSON.parse("{{ data |escapejs }}")
+                .then(
+                    //response => JSON.parse(response)
+                    response=>response.json()
                 )
-            })
-            //.then(response => response.json()) //var dat =JSON.parse("{{ data |escapejs }}")
-            .then(
-                //response => JSON.parse(response)
-                response=>response.json()
-            )
-            .then(data => {
-                //console.log(data["chart"]);
-                let time3= new Date();
-                console.log("time3: ",time3)
-                console.log("elapsed3: ",(time3-time0)/1000.0)
-                
-                const chart =JSON.parse(data["chart"])
-                //var layout= JSON.parse("{{ layout|escapejs }}")
-                Plotly.newPlot('chart1', chart)
-                document.getElementById("loading").style.display = "none";
-                let time4= new Date();
-                console.log("time4: ",time4)
-                console.log("elapsed4: ",(time4-time0)/1000.0)
-                // Handle the response from the server
-            })
-            .catch(error => {
-                console.error("Error uploading files:", error);
-            });
-        }
-            
+                .then(data => {
+                    //console.log(data["chart"]);
+                    let time3= new Date();
+                    console.log("time3: ",time3)
+                    console.log("elapsed3: ",(time3-time0)/1000.0)
+                    
+                    const chart =JSON.parse(data["chart"])
+                    //var layout= JSON.parse("{{ layout|escapejs }}")
+                    Plotly.newPlot('chart1', chart)
+                    document.getElementById("loading").style.display = "none";
+                    let time4= new Date();
+                    console.log("time4: ",time4)
+                    console.log("elapsed4: ",(time4-time0)/1000.0)
+                    // Handle the response from the server
+                })
+                .catch(error => {
+                    console.error("Error uploading files:", error);
+                });
+            }            
             console.log("PAGINA CARGADA")
             let start_date
             let end_date
             const datepicker=new Litepicker({
-                element: document.getElementById('demo'),
+                element: document.getElementById('js_daterange'),
                 singleMode: false,
                 tooltipText: {
                     one: 'night',
@@ -115,7 +123,7 @@
             start_date=def_start_Date;
             end_date=def_end_Date;
             
-            
+            document.querySelector('input[name="js_or_js_vpd"]').checked=true;
             document.querySelector('#plot_button').onclick = ()=>{plot(start_date,end_date)};//,station=station,tree=tree,thermocouple_depth=depth)};
             document.querySelector('#update_button').onclick = updateDB;
         });
@@ -160,7 +168,13 @@
         -->
         <div class="grupo">
             <h2>Js Date</h2>
-            <input type="text" id="demo">
+            <input type="text" id="js_daterange">
+        </div>
+        <div class="div_radio">
+            <input type="radio" id="Js" name="js_or_js_vpd" value="Js">
+            <label for="Js">Js</label><br>
+            <input type="radio" id="css" name="js_or_js_vpd" value="Js_vpd">
+            <label for="Js_vpd">Js/vpd</label><br>
         </div>
         <div id="div_buttons">
             <button id="update_button"> Update </button>

@@ -6,5 +6,6 @@ urlpatterns = [
      path("upload", views.upload_index, name="upload"),
      path("upload-file", views.upload_file, name="upload-file"),
      path("plot", views.plot_view, name="plot"),
+     path("download", views.download_view, name="download"),
      path("updatedb",views.updatedb,name="updatedb")
 ]

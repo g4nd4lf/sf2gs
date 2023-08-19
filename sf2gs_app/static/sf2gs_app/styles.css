@@ -3,8 +3,10 @@ body {
     margin: 0;
     padding: 0;
     display: flex;
+    /*
     justify-content: left;
     align-items: left;
+    */
     min-height: 100vh;
     background-color: #94a2be;
 }
@@ -19,7 +21,22 @@ body {
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
+.menu2 {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+.new_date {
+    display: flex;
+    align-items: center;
+    cursor: pointer;    
+}
+.filters{
+    justify-content: center;
 
+}
 .grupo {
     margin-bottom: 20px;
 }
@@ -41,7 +58,9 @@ select {
     padding: 5px;
     font-size: 14px;
 }
-
+.rs-tooltip{
+    opacity: 50%;
+}
 option {
     padding: 5px;
 }
@@ -54,8 +73,11 @@ option {
     min-width: 80px;
     margin: 7px;
 }
+.js_daterange{
+    padding-top: 20px;
+}
 #js_daterange {
-    width: 100%
+    width: 100%;
 }
 #chart_container {
     display: flex;

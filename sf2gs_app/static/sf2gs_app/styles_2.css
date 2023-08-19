@@ -1,0 +1,17 @@
+body {
+    display: flex;
+    width: 100%;
+}
+/* columns */
+body > * {
+    width: calc(100% / 3);
+}
+.menu{
+    background-color: gold;
+}
+#chart_container{
+    background-color: red;
+}
+.menu2{
+    background-color: orange;
+}

@@ -5,10 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="{% static '/sf2gs_app/styles.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static '/sf2gs_app/rSlider.min.css' %}">
+    <script src="{% static '/sf2gs_app/rSlider.min.js' %}"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
     <script>
-        var time0;
+        const arrayRange = (start, stop, step) =>
+            Array.from(
+            { length: (stop - start) / step + 1 },
+            (value, index) => (start + index * step).toFixed(1)
+        );
+        let time0;
+        let count_ranges=0;
+        let vpdSlider,parSlider,jsSlider
         document.addEventListener('DOMContentLoaded', function(event) {
             function getCookie(name) {
                 var value = "; " + document.cookie;
@@ -26,8 +35,80 @@
                                 }
                     );
             }
-        
-            function plot(start_date,end_date){//,station=1,tree=1,thermocouple_depth=0){
+            function download(){//,station=1,tree=1,thermocouple_depth=0){
+                start_date=[]
+                end_date=[]
+                for (const datepicker of datepickers) {
+                    start_date.push(datepicker.getStartDate());
+                    end_date.push(datepicker.getEndDate());
+                }
+                time0 = new Date();
+                document.getElementById("loading").style.display = "block";
+                const vble_to_plot = document.querySelector('input[name="js_or_js_vpd"]:checked').value;
+                const stations_selected=document.querySelector("#sel_station").selectedOptions
+                const trees_selected=document.querySelector("#sel_tree").selectedOptions
+                const thermocouple_depths_selected=document.querySelector("#sel_depth").selectedOptions
+                vpd_range=[parseFloat(vpdSlider.getValue().split(",")[0]),parseFloat(vpdSlider.getValue().split(",")[1])]
+                par_range=[parseFloat(parSlider.getValue().split(",")[0]),parseFloat(parSlider.getValue().split(",")[1])]
+                js_range=[parseFloat(jsSlider.getValue().split(",")[0]),parseFloat(jsSlider.getValue().split(",")[1])]
+                if (stations_selected.length==0 || trees_selected.length==0 || thermocouple_depths_selected.length==0 ) {
+                    document.getElementById("loading").style.display = "none";
+                    alert("You must select a station, a tree and a thermocouple depth to Plot!")
+                    return            
+                }
+                const station=stations_selected[0].value
+                const tree=trees_selected[0].value
+                const thermocouple_depth=thermocouple_depths_selected[0].value
+                const csrftoken = getCookie('csrftoken');
+                fetch("{% url 'download' %}", {
+                    method: "POST",
+                    headers: {
+                        //'Accept': 'application/json, text/plain, */*',
+                        //'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado
+                    },
+                    body: JSON.stringify(
+                        { "start_date" : start_date,
+                        "end_date" : end_date,
+                        "station" : station,
+                        "tree": tree,
+                        "thermocouple_depth":thermocouple_depth,
+                        "vble_to_plot":vble_to_plot,
+                        "vpd_range":vpd_range,
+                        "par_range":par_range,
+                        "js_range":js_range
+                        },
+                    )
+                })
+                //.then(response => response.json()) //var dat =JSON.parse("{{ data |escapejs }}")
+                .then(
+                    //response => JSON.parse(response)
+                    response=>response.blob()
+                )
+                .then(blob => {
+                    document.getElementById("loading").style.display = "none";
+                    // Crear un enlace temporal para descargar el archivo
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.style.display = "none";
+                    a.href = url;
+                    a.download = "data.csv";
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error("Error uploading files:", error);
+                });
+            }   
+
+            function plot(){//,station=1,tree=1,thermocouple_depth=0){
+                start_date=[]
+                end_date=[]
+                for (const datepicker of datepickers) {
+                    start_date.push(datepicker.getStartDate());
+                    end_date.push(datepicker.getEndDate());
+                }
                 time0 = new Date();
                 document.getElementById("loading").style.display = "block";
                 const vble_to_plot = document.querySelector('input[name="js_or_js_vpd"]:checked').value;
@@ -36,24 +117,16 @@
                 const thermocouple_depths_selected=document.querySelector("#sel_depth").selectedOptions
                 if (stations_selected.length==0 || trees_selected.length==0 || thermocouple_depths_selected.length==0 ) {
                     document.getElementById("loading").style.display = "none";
-                    alert("You must select a statio, a tree and a thermocouple depth to Plot!")
+                    alert("You must select a station, a tree and a thermocouple depth to Plot!")
                     return            
                 }
                 const station=stations_selected[0].value
                 const tree=trees_selected[0].value
                 const thermocouple_depth=thermocouple_depths_selected[0].value
-                //const elem=document.querySelector("#sel_station")
-                //const sel_stations = elem.selectElement.selectedOptions;
-                
-                //const sel_stations = document.getElementById("#sel_station").selectElement.selectedOptions;
-                //const stations=sel_stations.map((opt)=>opt.value)
-                //const station=stations[0]
-                //const sel_tree = document.getElementById("#sel_tree").selectElement.selectedOptions;
-                //const tree=sel_tree.map((opt)=>opt.value)[0]
-                //const sel_depth = document.getElementById("#sel_depth").selectElement.selectedOptions;
-                //const depth=sel_depth.map((opt)=>opt.value)[0]
-                //console.log("click!");
                 const csrftoken = getCookie('csrftoken');
+                vpd_range=[parseFloat(vpdSlider.getValue().split(",")[0]),parseFloat(vpdSlider.getValue().split(",")[1])]
+                par_range=[parseFloat(parSlider.getValue().split(",")[0]),parseFloat(parSlider.getValue().split(",")[1])]
+                js_range=[parseFloat(jsSlider.getValue().split(",")[0]),parseFloat(jsSlider.getValue().split(",")[1])]
                 fetch("{% url 'plot' %}", {
                     method: "POST",
                     headers: {
@@ -67,7 +140,10 @@
                         "station" : station,
                         "tree": tree,
                         "thermocouple_depth":thermocouple_depth,
-                        "vble_to_plot":vble_to_plot
+                        "vble_to_plot":vble_to_plot,
+                        "vpd_range":vpd_range,
+                        "par_range":par_range,
+                        "js_range":js_range
                         },
                     )
                 })
@@ -96,8 +172,8 @@
                 });
             }            
             console.log("PAGINA CARGADA")
-            let start_date
-            let end_date
+            let start_date=[]
+            let end_date=[]
             const datepicker=new Litepicker({
                 element: document.getElementById('js_daterange'),
                 singleMode: false,
@@ -112,20 +188,113 @@
                     picker.on('selected', (date1, date2) => {
                         console.log('Fecha de inicio:', date1);
                         console.log('Fecha de fin:', date2);
-                        start_date=date1;
-                        end_date=date2;
+                        //start_date.push(date1);
+                        //end_date.push(date2);
                     });
                 },
             })
+            
             const def_start_Date = new Date("{{ rangedate.start }}");
             const def_end_Date = new Date("{{ rangedate.end }}");            
             datepicker.setDateRange(def_start_Date, def_end_Date);
-            start_date=def_start_Date;
-            end_date=def_end_Date;
+            //datepicker1.setDateRange(def_start_Date, def_end_Date);
+            //datepicker2.setDateRange(def_start_Date, def_end_Date);
+            //start_date.push(def_start_Date);
+            //end_date.push(def_end_Date);
+            //start_date.push(def_start_Date);
+            //end_date.push(def_end_Date);
+            //start_date.push(def_start_Date);
+            //end_date.push(def_end_Date);
             
             document.querySelector('input[name="js_or_js_vpd"]').checked=true;
-            document.querySelector('#plot_button').onclick = ()=>{plot(start_date,end_date)};//,station=station,tree=tree,thermocouple_depth=depth)};
+            document.querySelector('#download_button').onclick = download;
+            document.querySelector('#plot_button').onclick = plot;//(start_date,end_date)};//,station=station,tree=tree,thermocouple_depth=depth)};
             document.querySelector('#update_button').onclick = updateDB;
+            const daterangeContainer = document.querySelector('.daterange_container');
+            const addrange=document.querySelector('#add_range')//.onclick =add_range;
+            const datepickers = [];
+            datepickers.push(datepicker)
+            addrange.addEventListener('click', () => {
+                count_ranges++
+                const newDaterange = document.createElement('div');
+                newDaterange.classList.add('js_daterange');
+
+                const heading = document.createElement('h2');
+                heading.textContent = `Date range ${count_ranges}`;
+
+                const input = document.createElement('input');
+                input.setAttribute('type', 'text');
+                input.classList.add('date-input');
+
+                newDaterange.appendChild(heading);
+                newDaterange.appendChild(input);
+
+                daterangeContainer.appendChild(newDaterange);//, addrange);
+
+                const newDatepicker = new Litepicker({
+                    element: input,
+                    singleMode: false,
+                    tooltipText: {
+                        one: 'night',
+                        other: 'nights'
+                    },
+                    tooltipNumber: (totalDays) => {
+                        return totalDays - 1;
+                    },
+                    setup: (picker) => {
+                        picker.on('selected', (date1, date2) => {
+                            console.log('Fecha de inicio:', date1);
+                            console.log('Fecha de fin:', date2);
+                            //start_date.push(date1)
+                            //end_date.push(date2)
+                        });
+                    },
+                });
+                datepickers.push(newDatepicker);
+                input.addEventListener('change', (event) => {
+                    console.log('Nuevo valor:', event.target.value);
+                });
+            });
+            const removerange=document.querySelector('#remove_range')//.onclick =add_range;
+            removerange.addEventListener('click', () => {
+                const lastrange = daterangeContainer.lastElementChild;
+                if (lastrange) {
+                    daterangeContainer.removeChild(lastrange);
+                    datepickers.pop();
+                }
+            })
+            const vpdarr=arrayRange(0,10,0.1)
+            const pararr=arrayRange(0,1500,1)
+            const jsarr=arrayRange(0,300,1)
+
+            vpdSlider = new rSlider({
+                target: '#vpdSlider',
+                values: vpdarr,
+                range: true,
+                tooltip: true,
+                scale: false,
+                labels: false,
+                set: [0.0, 10.0]
+            });
+            parSlider = new rSlider({
+                target: '#parSlider',
+                values: pararr,
+                range: true,
+                tooltip: true,
+                scale: false,
+                labels: false,
+                set: [0.0, 1500.0]
+            });
+            jsSlider = new rSlider({
+                target: '#jsSlider',
+                values: jsarr,
+                range: true,
+                tooltip: true,
+                scale: false,
+                labels: false,
+                set: [0.0, 150.0]
+            });
+            document.querySelectorAll('.rs-tooltip')[0].style.opacity='50%'
         });
         //document.querySelector('#demo').addEventListener("change", function(event) {}
     </script>
@@ -166,20 +335,23 @@
             </select>
         </div>
         -->
-        <div class="grupo">
-            <h2>Js Date</h2>
-            <input type="text" id="js_daterange">
-        </div>
         <div class="div_radio">
             <input type="radio" id="Js" name="js_or_js_vpd" value="Js">
-            <label for="Js">Js</label><br>
+            <label for="Js">Js vs VPD</label><br>
             <input type="radio" id="css" name="js_or_js_vpd" value="Js_vpd">
-            <label for="Js_vpd">Js/vpd</label><br>
+            <label for="Js_vpd">Js/VPD vs VPD</label><br>
+            <input type="radio" id="css" name="js_or_js_vpd" value="Js_vs_t">
+            <label for="Js_vs_t">Js vs time</label><br>
+            <input type="radio" id="css" name="js_or_js_vpd" value="Js_vpd_vs_t">
+            <label for="Js_vpd_vs_t">Js/VPD vs time</label><br>
+            
         </div>
         <div id="div_buttons">
             <button id="update_button"> Update </button>
             <button id="plot_button"> Plot </button>
-
+        </div>
+        <div id="div_download">
+            <button id="download_button"> Download </button>
         </div>
     </aside>
     <div id="chart_container">
@@ -187,6 +359,37 @@
         <div id="chart1"></div>
         <div id="chart2"></div>
     </div>
+    <div  class="menu2">
+        <div class="filters">
+            <h2> FILTERS: </h2>
+            <h4>VPD</h4>
+            <input type="text" id="vpdSlider" />
+            <h4>PAR</h4>
+            <input type="text" id="parSlider" />
+            <h4>Js</h4>
+            <input type="text" id="jsSlider" />
+        </div>
+        <div class="daterange_container">
+            <div class="js_daterange">
+                <h2>Date range</h2>
+                <input type="text" id="js_daterange">
+            </div>
+        </div>
+        <div class="new_date" id="add_range">
+            <svg id="plus_sign" xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-plus" width="40" height="40" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M12 5l0 14"></path>
+                <path d="M5 12l14 0"></path>
+            </svg>
+            <h4 id="add_text">Add Date Range...</h4>
+        </div>
+        <div class="new_date" id="remove_range">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-minus" width="40" height="40" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M5 12l14 0"></path>
+            </svg>
+            <h4 id="rem_text">Rem Date Range...</h4>
+        </div>
     <script>
         
     </script>

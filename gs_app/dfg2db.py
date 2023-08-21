@@ -4,7 +4,7 @@
 def crea_o_actualiza_tabla(db, df):
     import sqlite3
     from datetime import datetime
-    DATABASE='../db.sqlite3'
+    DATABASE='../db/db.sqlite3'
     # Eliminar duplicados del DataFrame
     df = df.drop_duplicates()    
     # Crear conexión a la base de datos
@@ -36,7 +36,7 @@ def crea_o_actualiza_tabla(db, df):
 
 def lee_tablas():
     import sqlite3
-    DATABASE='../db.sqlite3'
+    DATABASE='../db/db.sqlite3'
     #Para leer las tablas de la base de datos
     con = sqlite3.connect(DATABASE)
     sql_query="SELECT name FROM sqlite_master WHERE type='table';"
@@ -50,7 +50,7 @@ def db2df(table):
     import sqlite3
     import pandas as pd
     '''Function to read a table from the db and print the resulting df'''
-    DATABASE='../db.sqlite3'
+    DATABASE='../db/db.sqlite3'
     con = sqlite3.connect(DATABASE)
     sql_query = "SELECT * FROM '"+table+"';"
     df = pd.read_sql(sql_query, con)

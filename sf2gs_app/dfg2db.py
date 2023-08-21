@@ -329,3 +329,25 @@ def calculaJs_VPD(df):
     
     df=df.dropna()
     return df
+
+def roundbox2023(gs_table,station,tree,tree_zone='RIGHT',delta_gmt=2):
+    '''  To calculate the avergage of each round of measurments of gs. 
+    During every round several repetitions (leaves) of gs are measured in each tree. Every round is splitted asuming 
+    a time span higher than 500 seconds between measurements in the same tree.
+    The return of this function is a dataframe keeping the avearage of all the repetitions of each tree.
+    '''
+    import pandas as pd
+    tree_zone='DCHA' if tree_zone=='RIGHT' else 'IZDA' #data in DB is labeled in spanish: 'DCHA'=Right and 'IZDA'=Left
+    dfg0=db2df(gs_table)
+    #Convert date to GMT:
+    dfg0['timestamp']=pd.to_datetime(dfg0['timestamp'])-pd.Timedelta(hours=delta_gmt)
+    dfg=dfg0.query(f"irriwell=={station} and arbol=={tree} and parte_arbol=='{tree_zone}'")[["timestamp","gsw"]] 
+    #Every round is splitted asuming a time span higher than 500 seconds between measurements in the same tree.
+    dfg['date_time'] = pd.to_datetime(dfg['timestamp'])
+    dfg['timediff'] = dfg['date_time'].diff()
+    mask = dfg['timediff'] > pd.Timedelta(seconds=500)
+    dfg['round'] = mask.cumsum()
+    #dfg = dfg.drop(['timediff', 'date_time'], axis=1)
+    #rounds = dfg.groupby('round').mean()
+    #rounds.set_index('timestamp', inplace=True)
+    return dfg

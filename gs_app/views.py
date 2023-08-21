@@ -55,18 +55,80 @@ def upload_view(request):
         return JsonResponse({"error": "No files were uploaded"}, status=400)
         
 def read_gs(request):
+    import plotly.graph_objects as go
+    import pandas as pd
+    import sf2gs_app.dfg2db as dfg
+    from datetime import datetime
+
+    
     body_data = request.body.decode('utf-8')  # Decodificar los bytes en una cadena
     json_data = json.loads(body_data)
-    print("day: ",json_data['day'])
-    #return (HttpResponse(json_data['day']))
-    response=JsonResponse(json_data)
-    return HttpResponse(response)
+    received_date=json_data['day']
+    station=int(json_data['station'])
+    tree=int(json_data['tree'].split(" ")[1])
+    target_date = datetime.strptime(received_date, '%d/%m/%Y').date()
+    label=f"S{station}T{tree}"
+    #target_date = pd.to_datetime(recived_date, format='%d/%m/%Y').strftime('%Y-%m-%d')
+    # Filtra el DataFrame por la fecha concreta utilizando df.query()
+    #vdate=target_date.split("/")
+    #vdate.reverse()
+    #target_date="/".join(vdate)
+    print("day: ",target_date)
+    
+    #Read gs from DB and add round column to identify each round of repetitions
+    DBTABLE='gs_irriwell2023'
+    df=dfg.roundbox2023(DBTABLE,station=station,tree=tree)
+    rounds = df.groupby('round').agg({'timestamp': 'mean', 'gsw': 'mean'}).reset_index()
+
+    #rounds.head()
+    timestamps = pd.to_datetime(rounds["timestamp"])
+    tminutes = (timestamps - pd.Timestamp('1970-01-01')) // pd.Timedelta('1min')
+    tminutes = tminutes.astype(int)
+
+    tminutes=tminutes-tminutes[0]
+    df["roundtime"]=[tminutes[r] for r in df["round"]]
+
+    #Filtering by day:
+
+    df['date']=df['timestamp'].dt.date
+    #days=sorted(list(set(df['date']))) #Days of measurement:
+    #dfp=df.query('date == @target_date')
+    dfp = df[df['date'] == target_date]
+
+    rounds = df.groupby('round').agg({'timestamp': 'mean', 'gsw': 'mean'}).reset_index()
+    timestamps = pd.to_datetime(rounds["timestamp"])
+    dfp["rounddate"] = dfp["round"].apply(lambda r: rounds["timestamp"][r])
+    #dfp["rounddate"]=[rounds["timestamp"][r] for r in dfp["round"]]
+    dfp["labels"] = dfp["rounddate"].apply(lambda t: t.strftime('%d/%m %H:%M'))
+    #dfp["labels"]=[t.strftime('%d/%m %H:%M') for t in dfp["rounddate"]]
+
+    x_label = 'roundtime'
+    y_label = 'gsw'
+    #dfp=df.iloc[:36,:]
+    fig = go.Figure(data=go.Box(x=dfp[x_label], y=dfp[y_label]))
+    fig.update_layout(boxmode='overlay', width=800, height=500)
+    fig.update_layout(title="gs variability "+label,title_x=0.5)
+
+    fig.update_xaxes(
+        tickmode='array',
+        tickvals=dfp[x_label],
+        ticktext=dfp["labels"],
+        tickangle=45,
+        title_text="Date"
+    )
+    fig.update_yaxes(title_text="gs")
+    chart = fig.to_json()
+    response_data = {'chart': chart}
+    return JsonResponse(response_data)
     
 def index(request):
     
+   
     df=db2df(DBTABLE)
     print(df)
     days=gs_days(df)
+    stations=list(set(df['irriwell']))
     fdays =[{"daytime":day.strftime('%d/%m/%Y'),"str":day.strftime('%d/%m/%Y')} for day in days]
-    print(fdays)
-    return render(request, "gs_app/index.html",{ "days": fdays})
+    #print(fdays)
+    #return render(request, "gs_app/gs.html",{ "days": fdays,"df":df.to_html()})
+    return render(request, "gs_app/gs.html",{ "days": fdays,"stations":stations})

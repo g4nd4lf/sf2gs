@@ -11,7 +11,7 @@ import unicodedata
 from .dfg2db import crea_o_actualiza_tabla,lee_tablas, db2df, gs_days, adapt_dfg
 
 DBTABLE='gs_irriwell2023'
-DATABASE='../db/db.sqlite3'
+DATABASE='./db/db.sqlite3'
 def upload_view(request):
     if request.method == "POST": #and request.FILES.getlist("files"):
         #files = request.FILES.getlist("files")

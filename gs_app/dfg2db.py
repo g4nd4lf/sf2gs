@@ -4,7 +4,7 @@
 def crea_o_actualiza_tabla(db, df):
     import sqlite3
     from datetime import datetime
-    DATABASE='../db/db.sqlite3'
+    DATABASE='./db/db.sqlite3'
     # Eliminar duplicados del DataFrame
     df = df.drop_duplicates()    
     # Crear conexión a la base de datos
@@ -36,7 +36,7 @@ def crea_o_actualiza_tabla(db, df):
 
 def lee_tablas():
     import sqlite3
-    DATABASE='../db/db.sqlite3'
+    DATABASE='./db/db.sqlite3'
     #Para leer las tablas de la base de datos
     con = sqlite3.connect(DATABASE)
     sql_query="SELECT name FROM sqlite_master WHERE type='table';"
@@ -50,7 +50,7 @@ def db2df(table):
     import sqlite3
     import pandas as pd
     '''Function to read a table from the db and print the resulting df'''
-    DATABASE='../db/db.sqlite3'
+    DATABASE='./db/db.sqlite3'
     con = sqlite3.connect(DATABASE)
     sql_query = "SELECT * FROM '"+table+"';"
     df = pd.read_sql(sql_query, con)
@@ -89,3 +89,25 @@ def adapt_dfg(dfg,date):
     #Eliminamos las filas vacias (las que tienen NaT en la columna de timestamp)
     dfg = dfg.dropna(subset=['timestamp']).reset_index(drop=True)
     return(dfg)
+
+def roundbox2023(gs_table,station,tree,tree_zone='RIGHT',delta_gmt=2):
+    '''  To calculate the avergage of each round of measurments of gs. 
+    During every round several repetitions (leaves) of gs are measured in each tree. Every round is splitted asuming 
+    a time span higher than 500 seconds between measurements in the same tree.
+    The return of this function is a dataframe keeping the avearage of all the repetitions of each tree.
+    '''
+    import pandas as pd
+    tree_zone='DCHA' if tree_zone=='RIGHT' else 'IZDA' #data in DB is labeled in spanish: 'DCHA'=Right and 'IZDA'=Left
+    dfg0=db2df(gs_table)
+    #Convert date to GMT:
+    dfg0['timestamp']=pd.to_datetime(dfg0['timestamp'])-pd.Timedelta(hours=delta_gmt)
+    dfg=dfg0.query(f"irriwell=={station} and arbol=={tree} and parte_arbol=='{tree_zone}'")[["timestamp","gsw"]] 
+    #Every round is splitted asuming a time span higher than 500 seconds between measurements in the same tree.
+    dfg['date_time'] = pd.to_datetime(dfg['timestamp'])
+    dfg['timediff'] = dfg['date_time'].diff()
+    mask = dfg['timediff'] > pd.Timedelta(seconds=500)
+    dfg['round'] = mask.cumsum()
+    #dfg = dfg.drop(['timediff', 'date_time'], axis=1)
+    #rounds = dfg.groupby('round').mean()
+    #rounds.set_index('timestamp', inplace=True)
+    return dfg

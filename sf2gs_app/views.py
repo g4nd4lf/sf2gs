@@ -48,7 +48,8 @@ def download_view(request):
                 end_date.append(date.split("T")[0])
             else:
                 end_date.append(date['dateInstance'].split("T")[0])
-
+        start_time=data['start_time']
+        end_time=data['end_time']
         station=data['station']
         tree=data['tree']
         thermocouple_depth=data['thermocouple_depth']
@@ -58,19 +59,25 @@ def download_view(request):
        
         tz_table=station
         df_Js_VPD=db2df(tz_table+"_Jsvpd")
-        timefilter=f"((timestamp>='{start_date[0]}') and (timestamp<='{end_date[0]}'))"
+        datefilter=f"((timestamp>='{start_date[0]}') and (timestamp<='{end_date[0]}'))"
+        df_Js_VPD["daterange"]=0
+        df_Js_VPD.loc[(df_Js_VPD['timestamp'] >= start_date[0]) & (df_Js_VPD['timestamp'] <= end_date[0]), 'daterange'] = 0
         for i in range(1,len(start_date)):
-            timefilter+=f" or ((timestamp>='{start_date[i]}') and (timestamp<='{end_date[i]}'))"
+            newDateFilter=f"((timestamp>='{start_date[i]}') and (timestamp<='{end_date[i]}'))"
+            df_Js_VPD.loc[(df_Js_VPD['timestamp'] >= start_date[i]) & (df_Js_VPD['timestamp'] <= end_date[i]), 'daterange'] = i
+            datefilter+=" or "+newDateFilter
         jsfilter=f"(Js>={js_range[0]} and Js<={js_range[1]})"
         vpdfilter=f"(vpd>={vpd_range[0]} and vpd<={vpd_range[1]})"
         parfilter=f"(par>={par_range[0]} and par<={par_range[1]})"
-        df_filt=df_Js_VPD.query(timefilter).query(f"arbol=={tree} and sup=={int(not(thermocouple_depth))}")
+        df_filt=df_Js_VPD.query(datefilter).query(f"arbol=={tree} and sup=={int(not(thermocouple_depth))}")
         df_filt=df_filt.query(jsfilter).query(vpdfilter).query(parfilter)
         timestamps = pd.to_datetime(df_filt['timestamp'])
         df_filt['month'] = timestamps.dt.month
         df_filt['date'] = timestamps.dt.strftime('%d/%m/%Y')
         # Crea una columna 'time' con solo la hora (hora:minuto)
         df_filt['time'] = timestamps.dt.strftime('%H:%M')
+        timefilter=f"((time>='{start_time}' and time<'{end_time}'))"
+        df_filt=df_filt.query(timefilter)
         print(df_filt)
         # Generar el archivo CSV en memoria
         response = HttpResponse(content_type='text/csv')
@@ -90,7 +97,6 @@ def plot_view(request):
         print("time1_2: ", time1_2)
         print("elpased1_2: ",time1_2-time1)
         
-        #TODO AQUI HAY QUE MANEJAR LAS 3 FECHAS QUE FALTAN
         start_date=[]
         for date in data['start_date']:
             if type(date)==type(""):
@@ -103,7 +109,8 @@ def plot_view(request):
                 end_date.append(date.split("T")[0])
             else:
                 end_date.append(date['dateInstance'].split("T")[0])
-
+        start_time=data['start_time']
+        end_time=data['end_time']
         station=data['station']
         tree=data['tree']
         thermocouple_depth=data['thermocouple_depth']
@@ -128,15 +135,19 @@ def plot_view(request):
             label_vble_to_plot="Js/VPD"
             vble_x="timestamp"
             label_x="timestamp"
-    
+
+        vble_to_plot2="vpd"
+        if data['vble_to_plot2']=="vpd_vs_time":
+            vble_to_plot2="vpd"
+        elif data['vble_to_plot2']=="par_vs_time":
+            vble_to_plot2="par"
         #data= json.loads(request.body)
         print(start_date)
         print(end_date)
         #tz_tables=['CR6Irriwell1Router_tzs','CR6Irriwell2Meteo_tzs','CR6Irriwell3_tzs','CR6Irriwell4_tzs']
         s=TZ_TABLES.index(station)+1
         label=f"S{s}T{tree}d{thermocouple_depth}"
-        fig = make_subplots(rows=1, cols=1,subplot_titles=[label],horizontal_spacing = 0.5,vertical_spacing=0.5)
-        fig.update_layout(boxmode='overlay', width=800, height=500)
+        
         time1_3=time.time()
         print("time1_3: ", time1_3)
         print("elpased1_3: ",time1_3-time1)
@@ -155,17 +166,28 @@ def plot_view(request):
         print("time1_5: ", time1_5)
         print("elpased1_5: ",time1_5-time1)
         #dfmar=df_Js_VPD.query("timestamp>='2023-03-01'").query(f"arbol=={tree} and Js<={Jslimit} and sup=={int(not(thermocouple_depth))}")
-        timefilter=f"((timestamp>='{start_date[0]}') and (timestamp<='{end_date[0]}'))"
+        datefilter=f"((timestamp>='{start_date[0]}') and (timestamp<='{end_date[0]}'))"
+        df_Js_VPD["daterange"]=0
+        df_Js_VPD.loc[(df_Js_VPD['timestamp'] >= start_date[0]) & (df_Js_VPD['timestamp'] <= end_date[0]), 'daterange'] = 0
+        #df_Js_VPD.query(datefilter)["daterange"]=0
         for i in range(1,len(start_date)):
-            timefilter+=f" or ((timestamp>='{start_date[i]}') and (timestamp<='{end_date[i]}'))"
+            newDateFilter=f"((timestamp>='{start_date[i]}') and (timestamp<='{end_date[i]}'))"
+            df_Js_VPD.loc[(df_Js_VPD['timestamp'] >= start_date[i]) & (df_Js_VPD['timestamp'] <= end_date[i]), 'daterange'] = i
+            datefilter+=" or "+newDateFilter
         jsfilter=f"(Js>={js_range[0]} and Js<={js_range[1]})"
         vpdfilter=f"(vpd>={vpd_range[0]} and vpd<={vpd_range[1]})"
         parfilter=f"(par>={par_range[0]} and par<={par_range[1]})"
-        df_filt=df_Js_VPD.query(timefilter).query(f"arbol=={tree} and sup=={int(not(thermocouple_depth))}")
+        df_filt=df_Js_VPD.query(datefilter).query(f"arbol=={tree} and sup=={int(not(thermocouple_depth))}")
         df_filt=df_filt.query(jsfilter).query(vpdfilter).query(parfilter)
+        
         timestamps = pd.to_datetime(df_filt['timestamp'])
         df_filt['datetime']= pd.to_datetime(df_filt['timestamp'])
         df_filt['month'] = timestamps.dt.month
+        
+        df_filt['time'] = timestamps.dt.strftime('%H:%M')
+        timefilter=f"((time>='{start_time}' and time<'{end_time}'))"
+        df_filt=df_filt.query(timefilter)
+        
         # Crea una columna 'date' con solo la fecha (día/mes/año)
         df_filt.set_index('datetime', inplace=True)
         df_filt=df_filt.resample('30T').asfreq()
@@ -174,9 +196,11 @@ def plot_view(request):
         time1_6=time.time()
         print("time1_6: ", time1_6)
         print("elpased1_6: ",time1_6-time1)
-        scatter1 = px.scatter(df_filt, x=vble_x, y=vble_to_plot, color="month", color_continuous_scale='viridis',
+        scatter1 = px.scatter(df_filt, x=vble_x, y=vble_to_plot, color="daterange", color_continuous_scale='viridis',
                     title="Js vs vpd")
         scatter1.update_traces(marker=dict(size=6, opacity=0.6), selector=dict(mode='markers'))
+        fig = make_subplots(rows=1, cols=1,subplot_titles=[label],horizontal_spacing = 0.5,vertical_spacing=0.5)
+        fig.update_layout(boxmode='overlay', width=800, height=500)
         fig.add_trace(scatter1['data'][0], row=1, col=1)
         fig.update_xaxes(title_text=label_x)
         fig.update_yaxes(title_text=label_vble_to_plot)
@@ -192,7 +216,21 @@ def plot_view(request):
 
             #fig.get_trace("my_trace").update_traces(line=dict(width=2), selector=dict(mode='lines+markers'))
         chart = fig.to_json()
-        response_data = {'chart': chart}
+
+        #####CHART2
+        vble_x2='timestamp'
+        scatter2 = px.scatter(df_filt, x=vble_x2, y=vble_to_plot2, color="daterange", color_continuous_scale='viridis',
+                    title="")
+        scatter2.update_traces(marker=dict(size=6, opacity=0.6), selector=dict(mode='markers'))
+        fig2 = make_subplots(rows=1, cols=1,subplot_titles=[label],horizontal_spacing = 0.5,vertical_spacing=0.5)
+        fig2.update_layout(boxmode='overlay', width=800, height=500)
+        fig2.add_trace(scatter2['data'][0], row=1, col=1)
+        fig2.update_xaxes(title_text=vble_x2)
+        fig2.update_yaxes(title_text=vble_to_plot2)
+        fig2.update_layout(coloraxis=dict(colorscale='viridis'), showlegend=True,paper_bgcolor='rgba(0,0,0,0)')
+        fig2.update_traces(mode='lines')
+        chart2 = fig2.to_json()
+        response_data = {'chart': chart,'chart2': chart2}
         time2=time.time()
         print("End data proccess plot_view: ", time2)
         print("elpased: ",time2-time1)

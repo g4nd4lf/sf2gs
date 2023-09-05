@@ -18,8 +18,6 @@ DATABASE='../db/db.sqlite3'
 TZ_TABLES=['CR6Irriwell1Router_tzs','CR6Irriwell2Meteo_tzs','CR6Irriwell3_tzs','CR6Irriwell4_tzs']
 METEO_TABLE='CR6Irriwell2Meteo_Met30'
 
-#def index(request):
-#    return render(request, "sf2gs_app/index2.html")
 def updatedb(request):
     print("UPDATE DB OK!")
     #try:

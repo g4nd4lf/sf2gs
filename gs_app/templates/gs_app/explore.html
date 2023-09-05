@@ -1,0 +1,91 @@
+{% extends "gs_app/layout.html" %}
+{% block script %}
+<script>
+    function getCookie(name) {
+        var value = "; " + document.cookie;
+        var parts = value.split("; " + name + "=");
+        if (parts.length == 2) return parts.pop().split(";").shift();
+    }
+    document.addEventListener('DOMContentLoaded', function(event) {
+        const csrftoken = getCookie('csrftoken'); //para resolver problemas de cors
+        
+        document.querySelector('#gs_day').onchange = function() {
+            document.getElementById("loading").style.display = "block";
+            console.log(this.value);
+            const st_select=document.querySelector('#sel_station')
+            const station_selected=st_select.options[st_select.selectedIndex].text
+            const tree_select=document.querySelector('#sel_tree')
+            const tree_selected=tree_select.options[tree_select.selectedIndex].text
+            fetch("{% url 'read_gs' %}",{
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado
+            },
+            body: JSON.stringify({
+                day: this.value,
+                station: station_selected,
+                tree: tree_selected
+            })
+            }).then(response => response.json())
+            .then(data => {
+                const chart =JSON.parse(data["chart"])
+                Plotly.newPlot('chart1', chart)
+                document.getElementById("loading").style.display = "none";
+            });
+        }
+    })
+</script>
+{% endblock %}
+{% block body %}
+    <aside class="menu">
+        <h1>Analize gs (GRAPHS)</h1>
+    
+        <div class="grupo">
+            <h2>Station</h2>
+            <select id='sel_station'>
+                {% for s in stations %}
+                    <option value="{{ s.str }}"
+                    {% if forloop.first %}
+                        selected="selected"
+                    {% endif %}
+                    >{{ s }}
+
+
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="grupo">
+            <h2>Tree</h2>
+            <select class="sel2elem" id='sel_tree'>
+                <option value="1" selected="selected">Tree 1</option>
+                <option value="2">Tree 2</option>
+            </select>
+        </div>
+    
+    {% csrf_token %}
+        <div class="grupo">
+            <h2>Day Gs measurement</h2>
+            <select name="gs_day" id="gs_day">
+                    {% for day in days %}
+                        <option value="{{ day.str }}">{{ day.str }}</option>
+                    {% endfor %}
+            </select>
+        </div>
+        <div class="grupo">
+            <p> (Select a different date to plot data) </p>
+        </div>
+        
+    </aside>
+
+    <main>
+        
+        <div id="chart_container">
+            <div id="loading" class="loading"></div>
+            <div id="chart1"></div>
+        </div>
+    </main>
+    
+{% endblock %}

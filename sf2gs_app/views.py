@@ -234,37 +234,6 @@ def plot_view(request):
         print("elpased: ",time2-time1)
         return JsonResponse(response_data)
     
-def index_pru(request):
-    #Ejemplo de como enviar graficas
-
-    data = {
-        "Poblacion": [8175133, 3792621, 2695598, 2100263, 1445632],
-        "Ciudad": ["Nueva York", "Los Ángeles", "Chicago", "Houston", "Phoenix"]
-    }
-    df = pd.DataFrame(data)
-
-    # Crear la gráfica de barras interactiva con Plotly
-    fig = px.bar(df, x='Ciudad', y='Poblacion', title='Población por Ciudad')
-
-    data2 = [{"x": [1, 2, 3, 4, 5], 
-              "y": [10, 11, 12, 13, 14], 
-              "type": 'scatter', 
-              "mode": 'lines+markers',
-                "name": 'Línea 1'}]
-    layout = {
-            "title": "Gráfica Interactiva",
-            "xaxis": {
-                "title": "Eje X"
-            },
-            "yaxis": {
-                "title": "Eje Y"
-            }
-        }
-    chart = fig.to_json()
-    return render(request, 'sf2gs_app/index.html', 
-                  {"data": chart, "data2":json.dumps(data2), 
-                   "layout":json.dumps(layout)})
-
 def index(request):
     alltables=lee_tablas()
     print("tablas:")

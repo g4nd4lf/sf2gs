@@ -115,6 +115,7 @@ def read_gs(request):
         tickangle=45,
         title_text="Date"
     )
+    print(dfp[x_label])
     fig.update_yaxes(title_text="gs")
     chart = fig.to_json()
     response_data = {'chart': chart}

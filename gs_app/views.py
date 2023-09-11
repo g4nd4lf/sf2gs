@@ -143,6 +143,7 @@ def read_gs(request):
             for x in r:
                 outlier_time=rounds_day.loc[id,'timestamp'].strftime('%Y-%m-%d %H:%M')
                 outlier=outlier_time+" , "+str(x)
+                outliers_list.push(outlier)
                 #print("type: ",type(rounds_day.loc[id,'timestamp']))
                 #print(outlier_time,", gsoutlier: ",x)
                 print(outlier)

@@ -25,6 +25,15 @@
         }).then(response => response.json())
         .then(data => {
             const chart =JSON.parse(data["chart"])
+            const outliers = data["outliers"]
+            console.log(outliers)
+            const outlier_options=document.querySelector('#outliers')
+            outliers.forEach(function(outlier) {
+                var option = document.createElement('option');
+                option.value = outlier;
+                option.text = outlier;
+                outlier_options.add(option);
+            });
             Plotly.newPlot('chart1', chart)
             document.getElementById("loading").style.display = "none";
         });
@@ -34,10 +43,16 @@
         var parts = value.split("; " + name + "=");
         if (parts.length == 2) return parts.pop().split(";").shift();
     }
+    function remove_outlier(){
+        const selected_outlier=document.querySelector('#outliers').value
+        console.log(selected_outlier)
+    }
     document.addEventListener('DOMContentLoaded', function(event) { 
         csrftoken = getCookie('csrftoken'); //para resolver problemas de cors       
         document.querySelector('#plot_button').onclick = plot;
         document.querySelector('#gs_day').onchange = plot;
+        document.querySelector('#remove_outlier').onclick = remove_outlier;
+        
     })
 </script>
 {% endblock %}
@@ -84,7 +99,14 @@
         <div class="grupo">
             <p> (Select a different date to plot data) </p>
         </div>
-        
+        <div>
+            <select name="outliers" id="outliers">
+                    {% for o in outiers %}
+                        <option value="{{ o }}">{{ o }}</option>
+                    {% endfor %}
+            </select>
+            <button id="remove_outlier"> Remove outlier </button>
+        </div>
     </aside>
 
     <main>

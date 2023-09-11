@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-bh4w(n8s(e_)ssqq(0jrqg@a7s7eedyz(sndf79)v=wvxlng!@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['gruporec2.csic.es','127.0.0.1']
+ALLOWED_HOSTS = ['gruporec2.csic.es','127.0.0.1','localhost']
 
 CORS_ALLOWED_ORIGINS = [
     "https://gruporec2.csic.es",

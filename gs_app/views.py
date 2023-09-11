@@ -123,7 +123,7 @@ def read_gs(request):
     x_label = 'roundtime'
     y_label = 'gsw'
     #dfp=df.iloc[:36,:]
-    fig = go.Figure(data=go.Box(x=dfp[x_label], y=dfp[y_label]))#,boxpoints="all"))
+    fig = go.Figure(data=go.Box(x=dfp[x_label], y=dfp[y_label],boxpoints="all"))
     fig.update_layout(boxmode='overlay', width=800, height=500)
     fig.update_layout(title="gs variability "+label,title_x=0.5)
 
@@ -143,7 +143,8 @@ def read_gs(request):
             for x in r:
                 outlier_time=rounds_day.loc[id,'timestamp'].strftime('%Y-%m-%d %H:%M')
                 outlier=outlier_time+" , "+str(x)
-                outliers_list.push(outlier)
+                outliers_list.append(outlier)
+                #.push(outlier)
                 #print("type: ",type(rounds_day.loc[id,'timestamp']))
                 #print(outlier_time,", gsoutlier: ",x)
                 print(outlier)

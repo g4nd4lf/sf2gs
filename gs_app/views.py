@@ -52,7 +52,17 @@ def upload_view(request):
         return JsonResponse(response_data)
     else:
         return JsonResponse({"error": "No files were uploaded"}, status=400)
-        
+
+def findOutliers(data):
+    import numpy as np
+    Q1 = np.percentile(data,25, interpolation='nearest')#method='closest_observation')
+    Q3 = np.percentile(data,75, interpolation='nearest')#method='closest_observation')
+    IQR = Q3-Q1
+    lower_limit = Q1 - 1.5*IQR
+    upper_limit = Q3 + 1.5*IQR
+    outliers = [x for x in data if x < lower_limit or x > upper_limit]
+    print(f"Q1,Q3,IQR,lower_limit,upper_limit:{[Q1,Q3,IQR,lower_limit,upper_limit]}")
+    return(outliers)
 def read_gs(request):
     import plotly.graph_objects as go
     import pandas as pd
@@ -81,8 +91,12 @@ def read_gs(request):
 
     #rounds.head()
     timestamps = pd.to_datetime(rounds["timestamp"])
+    print("timestamps",timestamps)
     tminutes = (timestamps - pd.Timestamp('1970-01-01')) // pd.Timedelta('1min')
+    print("pd.Timedelta('1min')",pd.Timedelta('1min'))
+    print("tminutes",tminutes)
     tminutes = tminutes.astype(int)
+    print("tminutes2",tminutes)
 
     tminutes=tminutes-tminutes[0]
     df["roundtime"]=[tminutes[r] for r in df["round"]]
@@ -92,19 +106,24 @@ def read_gs(request):
     df['date']=df['timestamp'].dt.date
     #days=sorted(list(set(df['date']))) #Days of measurement:
     #dfp=df.query('date == @target_date')
-    dfp = df[df['date'] == target_date]
+    dfp = df[df['date'] == target_date].copy()
 
-    rounds = df.groupby('round').agg({'timestamp': 'mean', 'gsw': 'mean'}).reset_index()
-    timestamps = pd.to_datetime(rounds["timestamp"])
-    dfp["rounddate"] = dfp["round"].apply(lambda r: rounds["timestamp"][r])
+    #rounds = df.groupby('round').agg({'timestamp': 'mean', 'gsw': 'mean'}).reset_index()
+    rounds_day = dfp.groupby('round').agg({'timestamp': 'mean', 'gsw': 'mean'}).reset_index()
+    timestamps = pd.to_datetime(rounds_day["timestamp"])
+    #dfp["rounddate"] = dfp["round"].apply(lambda r: rounds["timestamp"][r])
+    dfp.loc[:, "rounddate"] = dfp["round"].apply(lambda r: rounds_day["timestamp"][r])
+
     #dfp["rounddate"]=[rounds["timestamp"][r] for r in dfp["round"]]
-    dfp["labels"] = dfp["rounddate"].apply(lambda t: t.strftime('%d/%m %H:%M'))
+    #dfp["labels"] = dfp["rounddate"].apply(lambda t: t.strftime('%d/%m %H:%M'))
+    dfp.loc[:, "labels"] = dfp["rounddate"].apply(lambda t: t.strftime('%d/%m %H:%M'))
+
     #dfp["labels"]=[t.strftime('%d/%m %H:%M') for t in dfp["rounddate"]]
 
     x_label = 'roundtime'
     y_label = 'gsw'
     #dfp=df.iloc[:36,:]
-    fig = go.Figure(data=go.Box(x=dfp[x_label], y=dfp[y_label]))
+    fig = go.Figure(data=go.Box(x=dfp[x_label], y=dfp[y_label]))#,boxpoints="all"))
     fig.update_layout(boxmode='overlay', width=800, height=500)
     fig.update_layout(title="gs variability "+label,title_x=0.5)
 
@@ -115,10 +134,23 @@ def read_gs(request):
         tickangle=45,
         title_text="Date"
     )
-    print(dfp[x_label])
+    print(dfp[[x_label,y_label]])
+    outliers = dfp.groupby(x_label)[y_label].apply(findOutliers).reset_index()
+    outliers_list=[]
+    print("Listing outliers with timestamp")
+    for id,r in enumerate(outliers[y_label]):
+        if len(r)>0:
+            for x in r:
+                outlier_time=rounds_day.loc[id,'timestamp'].strftime('%Y-%m-%d %H:%M')
+                outlier=outlier_time+" , "+str(x)
+                #print("type: ",type(rounds_day.loc[id,'timestamp']))
+                #print(outlier_time,", gsoutlier: ",x)
+                print(outlier)
+    print("rounds_day",rounds_day)
+    print(outliers)
     fig.update_yaxes(title_text="gs")
     chart = fig.to_json()
-    response_data = {'chart': chart}
+    response_data = {'chart': chart,'outliers': outliers_list}
     return JsonResponse(response_data)
     
 def index(request):

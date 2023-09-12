@@ -72,6 +72,8 @@ def read_gs(request):
     
     body_data = request.body.decode('utf-8')  # Decodificar los bytes en una cadena
     json_data = json.loads(body_data)
+    outliers_removed=json_data['outliers_removed']
+    print("OUTLIERS REMOVED: ",outliers_removed)
     received_date=json_data['day']
     station=int(json_data['station'])
     tree=int(json_data['tree'].split(" ")[1])
@@ -82,7 +84,7 @@ def read_gs(request):
     #vdate=target_date.split("/")
     #vdate.reverse()
     #target_date="/".join(vdate)
-    print("day: ",target_date)
+    #print("day: ",target_date)
     
     #Read gs from DB and add round column to identify each round of repetitions
     DBTABLE='gs_irriwell2023'
@@ -91,12 +93,12 @@ def read_gs(request):
 
     #rounds.head()
     timestamps = pd.to_datetime(rounds["timestamp"])
-    print("timestamps",timestamps)
+    #print("timestamps",timestamps)
     tminutes = (timestamps - pd.Timestamp('1970-01-01')) // pd.Timedelta('1min')
-    print("pd.Timedelta('1min')",pd.Timedelta('1min'))
-    print("tminutes",tminutes)
+    #print("pd.Timedelta('1min')",pd.Timedelta('1min'))
+    #print("tminutes",tminutes)
     tminutes = tminutes.astype(int)
-    print("tminutes2",tminutes)
+    #print("tminutes2",tminutes)
 
     tminutes=tminutes-tminutes[0]
     df["roundtime"]=[tminutes[r] for r in df["round"]]
@@ -104,12 +106,13 @@ def read_gs(request):
     #Filtering by day:
 
     df['date']=df['timestamp'].dt.date
+    df=df.query
     #days=sorted(list(set(df['date']))) #Days of measurement:
     #dfp=df.query('date == @target_date')
     dfp = df[df['date'] == target_date].copy()
 
     #rounds = df.groupby('round').agg({'timestamp': 'mean', 'gsw': 'mean'}).reset_index()
-    rounds_day = dfp.groupby('round').agg({'timestamp': 'mean', 'gsw': 'mean'}).reset_index()
+    rounds_day = dfp.groupby('round').agg({'roundtime': 'mean','timestamp': 'mean', 'gsw': 'mean'}).reset_index()
     timestamps = pd.to_datetime(rounds_day["timestamp"])
     #dfp["rounddate"] = dfp["round"].apply(lambda r: rounds["timestamp"][r])
     dfp.loc[:, "rounddate"] = dfp["round"].apply(lambda r: rounds_day["timestamp"][r])
@@ -134,22 +137,23 @@ def read_gs(request):
         tickangle=45,
         title_text="Date"
     )
-    print(dfp[[x_label,y_label]])
+    #print(dfp[[x_label,y_label]])
     outliers = dfp.groupby(x_label)[y_label].apply(findOutliers).reset_index()
     outliers_list=[]
     print("Listing outliers with timestamp")
     for id,r in enumerate(outliers[y_label]):
         if len(r)>0:
             for x in r:
+                outlier_roundtime=rounds_day.loc[id,'roundtime']
                 outlier_time=rounds_day.loc[id,'timestamp'].strftime('%Y-%m-%d %H:%M')
-                outlier=outlier_time+" , "+str(x)
+                outlier=str(outlier_roundtime)+" , "+outlier_time+" , "+str(x)
                 outliers_list.append(outlier)
                 #.push(outlier)
                 #print("type: ",type(rounds_day.loc[id,'timestamp']))
                 #print(outlier_time,", gsoutlier: ",x)
                 print(outlier)
-    print("rounds_day",rounds_day)
-    print(outliers)
+    #print("rounds_day",rounds_day)
+    #print(outliers)
     fig.update_yaxes(title_text="gs")
     chart = fig.to_json()
     response_data = {'chart': chart,'outliers': outliers_list}

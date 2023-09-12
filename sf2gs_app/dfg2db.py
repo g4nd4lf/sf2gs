@@ -342,9 +342,11 @@ def roundbox2023(gs_table,station,tree,tree_zone='RIGHT',delta_gmt=2):
     #Convert date to GMT:
     dfg0['timestamp']=pd.to_datetime(dfg0['timestamp'])-pd.Timedelta(hours=delta_gmt)
     dfg=dfg0.query(f"irriwell=={station} and arbol=={tree} and parte_arbol=='{tree_zone}'")[["timestamp","gsw"]] 
+    dfg=dfg.reset_index(drop=True)
     #Every round is splitted asuming a time span higher than 500 seconds between measurements in the same tree.
     dfg['date_time'] = pd.to_datetime(dfg['timestamp'])
     dfg['timediff'] = dfg['date_time'].diff()
+    dfg.loc[0,'timediff']=dfg.loc[1,'timediff']*0
     mask = dfg['timediff'] > pd.Timedelta(seconds=500)
     dfg['round'] = mask.cumsum()
     #dfg = dfg.drop(['timediff', 'date_time'], axis=1)

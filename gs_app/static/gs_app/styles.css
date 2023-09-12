@@ -48,3 +48,9 @@
 #chart1 {
     background-color: #94a2be;
 }
+
+#outliers_removed{
+  display: flex;
+  flex-direction: column;
+
+}

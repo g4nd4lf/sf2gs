@@ -9,7 +9,8 @@ import io
 import re
 import unicodedata
 from .dfg2db import crea_o_actualiza_tabla,lee_tablas, db2df, gs_days, adapt_dfg
-
+import scipy.stats as st
+#st.i
 DBTABLE='gs_irriwell2023'
 DATABASE='./db/db.sqlite3'
 def upload_view(request):
@@ -46,29 +47,34 @@ def upload_view(request):
                 # For demonstration purposes, let's just collect the filenames
                 #results.append(file.name)
                 print(file.name)
-        #results = [df.to_json(orient='records') for df in dfs]            
-        #return JsonResponse({"results": df.to_json(orient='records')})
-        response_data = {'measurement_dats': sheets}
-        return JsonResponse(response_data)
-    else:
-        return JsonResponse({"error": "No files were uploaded"}, status=400)
+            #results = [df.to_json(orient='records') for df in dfs]            
+            #return JsonResponse({"results": df.to_json(orient='records')})
+            response_data = {'measurement_dats': sheets}
+            return JsonResponse(response_data)
+        else:
+            return JsonResponse({"error": "No files were uploaded"}, status=400)
+    else: 
+        return render(request, "gs_app/upload.html")
 
 def findOutliers(data):
     import numpy as np
-    Q1 = np.percentile(data,25, interpolation='nearest')#method='closest_observation')
-    Q3 = np.percentile(data,75, interpolation='nearest')#method='closest_observation')
+    
+    mean=np.mean(data)
+    median=np.quantile(data,0.5,method='hazen')
+    Q1 = np.percentile(data,25, interpolation='hazen')
+    Q3 = np.percentile(data,75, interpolation='hazen')
     IQR = Q3-Q1
     lower_limit = Q1 - 1.5*IQR
     upper_limit = Q3 + 1.5*IQR
     outliers = [x for x in data if x < lower_limit or x > upper_limit]
-    print(f"Q1,Q3,IQR,lower_limit,upper_limit:{[Q1,Q3,IQR,lower_limit,upper_limit]}")
+    print(f"mean,median,Q1,Q3,IQR,lower_limit,upper_limit:{[mean,median,Q1,Q3,IQR,lower_limit,upper_limit]}")
     return(outliers)
+
 def read_gs(request):
     import plotly.graph_objects as go
     import pandas as pd
     import sf2gs_app.dfg2db as dfg
     from datetime import datetime
-
     
     body_data = request.body.decode('utf-8')  # Decodificar los bytes en una cadena
     json_data = json.loads(body_data)
@@ -106,7 +112,10 @@ def read_gs(request):
     #Filtering by day:
 
     df['date']=df['timestamp'].dt.date
-    df=df.query
+    for o in outliers_removed:
+        filter_outliers = (df['roundtime'] == int(float(o.split(' , ')[0]))) & (df['gsw'] == float(o.split(' , ')[2]))
+        df=df[~filter_outliers]
+    #df=df.query
     #days=sorted(list(set(df['date']))) #Days of measurement:
     #dfp=df.query('date == @target_date')
     dfp = df[df['date'] == target_date].copy()
@@ -115,7 +124,7 @@ def read_gs(request):
     rounds_day = dfp.groupby('round').agg({'roundtime': 'mean','timestamp': 'mean', 'gsw': 'mean'}).reset_index()
     timestamps = pd.to_datetime(rounds_day["timestamp"])
     #dfp["rounddate"] = dfp["round"].apply(lambda r: rounds["timestamp"][r])
-    dfp.loc[:, "rounddate"] = dfp["round"].apply(lambda r: rounds_day["timestamp"][r])
+    dfp.loc[:, "rounddate"] = dfp["round"].apply(lambda r: rounds_day.loc[rounds_day['round'] == r, 'timestamp'].iloc[0])
 
     #dfp["rounddate"]=[rounds["timestamp"][r] for r in dfp["round"]]
     #dfp["labels"] = dfp["rounddate"].apply(lambda t: t.strftime('%d/%m %H:%M'))
@@ -126,7 +135,7 @@ def read_gs(request):
     x_label = 'roundtime'
     y_label = 'gsw'
     #dfp=df.iloc[:36,:]
-    fig = go.Figure(data=go.Box(x=dfp[x_label], y=dfp[y_label],boxpoints="all"))
+    fig = go.Figure(data=go.Box(x=dfp[x_label], y=dfp[y_label],boxpoints="all", boxmean=True))
     fig.update_layout(boxmode='overlay', width=800, height=500)
     fig.update_layout(title="gs variability "+label,title_x=0.5)
 

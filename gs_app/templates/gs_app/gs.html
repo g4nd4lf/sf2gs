@@ -2,7 +2,12 @@
 {% block script %}
 <script>
     let csrftoken;
-    function plot(){
+    function plot(event){
+        if (event.type=='change'){
+            const div_outliers_removed= document.querySelector('#outliers_removed')
+            div_outliers_removed.innerHTML = ''
+            console.log("change")}
+        console.log(event)
         document.getElementById("loading").style.display = "block";
         const newdate=document.querySelector('#gs_day').value
         console.log(newdate)
@@ -32,6 +37,7 @@
             const outliers = data["outliers"]
             console.log(outliers)
             const outlier_options=document.querySelector('#outliers')
+            outlier_options.innerHTML = '';
             outliers.forEach(function(outlier) {
                 var option = document.createElement('option');
                 option.value = outlier;

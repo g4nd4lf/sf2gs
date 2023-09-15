@@ -60,9 +60,12 @@
             });
             const chart =JSON.parse(data["chart"])
             Plotly.newPlot('chart1', chart)
-            document.getElementById("loading").style.display = "none";
             const chart2 =JSON.parse(data["chart2"])
             Plotly.newPlot('chart2', chart2)
+            //const chart3 =JSON.parse(data["chart3"])
+            Plotly.newPlot('chart3', chart2)
+            document.getElementById("loading").style.display = "none";
+            
         });
     }
     function getCookie(name) {
@@ -140,10 +143,10 @@
 {% endblock %}
 {% block body %}
     <aside class="menu">
-        <h1>Analize gs (GRAPHS)</h1>
+        <h1>gs ANALIZER</h1>
     
         <div class="grupo">
-            <h2>Station</h2>
+            <h3>Station</h3>
             <select id='sel_station'>
                 {% for s in stations %}
                     <option value="{{ s.str }}"
@@ -158,7 +161,7 @@
             </select>
         </div>
         <div class="grupo">
-            <h2>Tree</h2>
+            <h3>Tree</h3>
             <select class="sel2elem" id='sel_tree'>
                 <option value="1" selected="selected">Tree 1</option>
                 <option value="2">Tree 2</option>
@@ -167,7 +170,7 @@
     
     {% csrf_token %}
         <div class="grupo">
-            <h2>Day Gs measurement</h2>
+            <h3>Measurement day</h3>
             <div>
                 <select name="gs_day" id="gs_day">
                         {% for day in days %}
@@ -177,27 +180,27 @@
                 <button id="plot_button"> Plot </button>
             </div>
         </div>
-        
+        <hr>
         <div class="grupo">
-            <p> (Select a different date to plot data) </p>
+            <h3> Remove points </h3>
         </div>
         <div>
-            <select name="outliers" id="outliers">
+            <select class="mi-select" name="outliers" id="outliers">
                     {% for o in outiers %}
                         <option value="{{ o }}">{{ o }}</option>
                     {% endfor %}
             </select>
-            <button id="remove_outlier"> Remove outlier </button>
+            <button class="mi-button" id="remove_outlier"> Remove outlier </button>
         </div>
         <div name="outliers_removed" id="outliers_removed">
         </div>
         <div>
-            <select name="rounds" id="rounds">
+            <select class="mi-select" name="rounds" id="rounds">
                     {% for r in rounds %}
                         <option value="{{ r }}">{{ r }}</option>
                     {% endfor %}
             </select>
-            <button id="remove_round"> Remove round </button>
+            <button class="mi-button" id="remove_round"> Remove round </button>
         </div>
         <div name="rounds_removed" id="rounds_removed">
         </div>
@@ -207,8 +210,9 @@
         
         <div id="chart_container">
             <div id="loading" class="loading"></div>
-            <div id="chart1"></div>
-            <div id="chart2"></div>
+            <div id="chart1" class="chart"></div>
+            <div id="chart2" class="chart"></div>
+            <div id="chart3" class="chart"></div>
         </div>
     </main>
     

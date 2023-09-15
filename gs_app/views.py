@@ -145,7 +145,7 @@ def read_gs(request):
     y_label = 'gsw'
     #dfp=df.iloc[:36,:]
     fig = go.Figure(data=go.Box(x=dfp[x_label], y=dfp[y_label],boxpoints="all", boxmean=True))
-    fig.update_layout(boxmode='overlay', width=800, height=500)
+    fig.update_layout(boxmode='overlay', height=400)
     fig.update_layout(title="gs variability "+label,title_x=0.5)
     fig.update_layout(margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor="LightSteelBlue")
 
@@ -214,7 +214,7 @@ def read_gs(request):
     fig2.add_trace(go.Scatter(x=dfpmet['timestamp'], y=dfpmet['par'], name="PAR"),secondary_y=False,)
     fig2.add_trace(go.Scatter(x=dfpmet['timestamp'], y=dfpmet['vpd'], name="VPD"),secondary_y=True,)
     # Add figure title
-    fig2.update_layout(width=800, height=300, margin=dict(l=20, r=20, t=20, b=20))
+    fig2.update_layout(height=400, margin=dict(l=20, r=20, t=20, b=20))
     # Set x-axis title
     #fig2.update_xaxes(title_text="xaxis title")
     # Set y-axes titles

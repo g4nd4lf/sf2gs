@@ -27,7 +27,9 @@
     min-height: 100vh;
     background-color: #94a2be;
 }
-
+h1 {
+  font-weight: 100;
+}
 .menu {
     background-color: #fff;
     border: 1px solid #ccc;
@@ -37,17 +39,30 @@
 }
 
 #chart_container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    width:800px; 
-    height:500px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
 }
 
-#chart1 {
-    background-color: #94a2be;
+.js-plotly-plot{
+  flex: 1;
+  max-width: 100%;
+  background-color: red;
 }
+.chartx {
+  flex: 1;
+  width: 50%;
+  background-color: red;
+}
+pru{
+  background-color: #94a2be;
+}
+.mi-select {
+  width: 115px;
+}
+.mi-button {
+  width: 115px;
+}
+
 
 #outliers_removed{
   display: flex;

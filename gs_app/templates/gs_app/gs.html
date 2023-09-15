@@ -6,6 +6,8 @@
         if (event.type=='change'){
             const div_outliers_removed= document.querySelector('#outliers_removed')
             div_outliers_removed.innerHTML = ''
+            const div_rounds_removed= document.querySelector('#rounds_removed')
+            div_rounds_removed.innerHTML = ''
             console.log("change")}
         console.log(event)
         document.getElementById("loading").style.display = "block";
@@ -13,6 +15,8 @@
         console.log(newdate)
         const divs_outliers_removed= document.querySelector('#outliers_removed').querySelectorAll('div')
         const ouliers_removed = Array.from(divs_outliers_removed).map(elemento => elemento.id).filter(Boolean);
+        const divs_rounds_removed= document.querySelector('#rounds_removed').querySelectorAll('div')
+        const rounds_removed = Array.from(divs_rounds_removed).map(elemento => elemento.id).filter(Boolean);
         
         const st_select=document.querySelector('#sel_station')
         const station_selected=st_select.options[st_select.selectedIndex].text
@@ -29,11 +33,11 @@
             day: newdate,
             station: station_selected,
             tree: tree_selected,
-            outliers_removed: ouliers_removed
+            outliers_removed: ouliers_removed,
+            rounds_removed: rounds_removed
         })
         }).then(response => response.json())
         .then(data => {
-            const chart =JSON.parse(data["chart"])
             const outliers = data["outliers"]
             console.log(outliers)
             const outlier_options=document.querySelector('#outliers')
@@ -44,6 +48,17 @@
                 option.text = outlier;
                 outlier_options.add(option);
             });
+            const rounds = data["rounds"]
+            console.log(rounds)
+            const round_options=document.querySelector('#rounds')
+            round_options.innerHTML = '';
+            rounds.forEach(function(round) {
+                var option = document.createElement('option');
+                option.value = round;
+                option.text = round;
+                round_options.add(option);
+            });
+            const chart =JSON.parse(data["chart"])
             Plotly.newPlot('chart1', chart)
             document.getElementById("loading").style.display = "none";
         });
@@ -82,11 +97,41 @@
         outlier_selector.remove(id) 
         //console.log(selected_outlier)
     }
+    function remove_round(){
+        const round_selector=document.querySelector('#rounds')
+        const selected_round=round_selector.value
+        const id=round_selector.selectedIndex
+        const rounds_removed_section=document.querySelector('#rounds_removed')
+        const newDiv = document.createElement('div');
+        newDiv.id=selected_round
+        const newLabel=document.createElement('label');
+        newLabel.textContent =selected_round;
+        const newButton=document.createElement('button');
+        newButton.textContent="X"
+        newButton.onclick = function(){
+            const div_container= this.parentElement
+            const round = div_container.id;
+            const round_selector=document.querySelector('#rounds')
+            const newOption=document.createElement('option');
+            newOption.value=round
+            newOption.text=round
+            round_selector.appendChild(newOption)
+            div_container.remove();
+        }
+
+        newDiv.appendChild(newLabel)
+        newDiv.appendChild(newButton)
+        rounds_removed_section.appendChild(newDiv);
+        //After adding the outlier to the list, it is removed from the selector
+        round_selector.remove(id) 
+        //console.log(selected_outlier)
+    }
     document.addEventListener('DOMContentLoaded', function(event) { 
         csrftoken = getCookie('csrftoken'); //para resolver problemas de cors       
         document.querySelector('#plot_button').onclick = plot;
         document.querySelector('#gs_day').onchange = plot;
         document.querySelector('#remove_outlier').onclick = remove_outlier;
+        document.querySelector('#remove_round').onclick = remove_round;
         
     })
 </script>
@@ -143,7 +188,16 @@
             <button id="remove_outlier"> Remove outlier </button>
         </div>
         <div name="outliers_removed" id="outliers_removed">
-
+        </div>
+        <div>
+            <select name="rounds" id="rounds">
+                    {% for r in rounds %}
+                        <option value="{{ r }}">{{ r }}</option>
+                    {% endfor %}
+            </select>
+            <button id="remove_round"> Remove round </button>
+        </div>
+        <div name="rounds_removed" id="rounds_removed">
         </div>
     </aside>
 

@@ -79,7 +79,10 @@ def read_gs(request):
     body_data = request.body.decode('utf-8')  # Decodificar los bytes en una cadena
     json_data = json.loads(body_data)
     outliers_removed=json_data['outliers_removed']
+    rounds_removed=json_data['rounds_removed']
     print("OUTLIERS REMOVED: ",outliers_removed)
+    print("ROUNDS REMOVED: ",rounds_removed)
+    
     received_date=json_data['day']
     station=int(json_data['station'])
     tree=int(json_data['tree'].split(" ")[1])
@@ -112,9 +115,11 @@ def read_gs(request):
     #Filtering by day:
 
     df['date']=df['timestamp'].dt.date
+    #Removing outliers from dataframe:
     for o in outliers_removed:
         filter_outliers = (df['roundtime'] == int(float(o.split(' , ')[0]))) & (df['gsw'] == float(o.split(' , ')[2]))
         df=df[~filter_outliers]
+    
     #df=df.query
     #days=sorted(list(set(df['date']))) #Days of measurement:
     #dfp=df.query('date == @target_date')
@@ -129,7 +134,9 @@ def read_gs(request):
     #dfp["rounddate"]=[rounds["timestamp"][r] for r in dfp["round"]]
     #dfp["labels"] = dfp["rounddate"].apply(lambda t: t.strftime('%d/%m %H:%M'))
     dfp.loc[:, "labels"] = dfp["rounddate"].apply(lambda t: t.strftime('%d/%m %H:%M'))
-
+    for r in rounds_removed:
+        filter_rounds = (dfp['labels'] == r)
+        dfp=dfp[~filter_rounds]
     #dfp["labels"]=[t.strftime('%d/%m %H:%M') for t in dfp["rounddate"]]
 
     x_label = 'roundtime'
@@ -161,11 +168,14 @@ def read_gs(request):
                 #print("type: ",type(rounds_day.loc[id,'timestamp']))
                 #print(outlier_time,", gsoutlier: ",x)
                 print(outlier)
+    
+    rounds_list = list(set(dfp['labels']))
+    rounds_list.sort()
     #print("rounds_day",rounds_day)
     #print(outliers)
     fig.update_yaxes(title_text="gs")
     chart = fig.to_json()
-    response_data = {'chart': chart,'outliers': outliers_list}
+    response_data = {'chart': chart,'outliers': outliers_list,'rounds': rounds_list}
     return JsonResponse(response_data)
     
 def index(request):

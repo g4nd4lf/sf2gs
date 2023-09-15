@@ -304,7 +304,18 @@ def obtiene_tzyvpd(tz_file,meteo_file):
     #df=dfg[['tz','vpd']]
     df=dfg[['tz','vpd','par']]
     return df
+
+def obtiene_vpdypar(meteo_file):
+    import pandas as pd
+    #Leemos de la base de datos las medidas de meteo
+    df=db2df(meteo_file)
     
+    df=df.rename(columns={'vpd_avg': 'vpd'})
+    df=df.rename(columns={'rad_par_avg': 'par'})
+    #df=dfg[['tz','vpd']]
+    meteo=df[['vpd','par']]
+    return meteo
+
 #Calculamos Js/VPD:
 def calculaJs_VPD(df):
     import pandas as pd

@@ -111,3 +111,14 @@ def roundbox2023(gs_table,station,tree,tree_zone='RIGHT',delta_gmt=2):
     #rounds = dfg.groupby('round').mean()
     #rounds.set_index('timestamp', inplace=True)
     return dfg
+
+def obtiene_vpdypar(meteo_file):
+    import pandas as pd
+    #Leemos de la base de datos las medidas de meteo
+    df=db2df(meteo_file)
+    
+    df=df.rename(columns={'vpd_avg': 'vpd'})
+    df=df.rename(columns={'rad_par_avg': 'par'})
+    #df=dfg[['tz','vpd']]
+    meteo=df[['timestamp','vpd','par']]
+    return meteo

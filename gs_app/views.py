@@ -8,7 +8,7 @@ import pandas as pd
 import io
 import re
 import unicodedata
-from .dfg2db import crea_o_actualiza_tabla,lee_tablas, db2df, gs_days, adapt_dfg
+from .dfg2db import crea_o_actualiza_tabla,lee_tablas, db2df, gs_days, adapt_dfg, obtiene_vpdypar
 import scipy.stats as st
 #st.i
 DBTABLE='gs_irriwell2023'
@@ -72,6 +72,8 @@ def findOutliers(data):
 
 def read_gs(request):
     import plotly.graph_objects as go
+    import plotly.express as px
+    from plotly.subplots import make_subplots
     import pandas as pd
     import sf2gs_app.dfg2db as dfg
     from datetime import datetime
@@ -145,13 +147,14 @@ def read_gs(request):
     fig = go.Figure(data=go.Box(x=dfp[x_label], y=dfp[y_label],boxpoints="all", boxmean=True))
     fig.update_layout(boxmode='overlay', width=800, height=500)
     fig.update_layout(title="gs variability "+label,title_x=0.5)
+    fig.update_layout(margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor="LightSteelBlue")
 
     fig.update_xaxes(
         tickmode='array',
         tickvals=dfp[x_label],
         ticktext=dfp["labels"],
         tickangle=45,
-        title_text="Date"
+        #title_text="Date"
     )
     #print(dfp[[x_label,y_label]])
     outliers = dfp.groupby(x_label)[y_label].apply(findOutliers).reset_index()
@@ -175,12 +178,69 @@ def read_gs(request):
     #print(outliers)
     fig.update_yaxes(title_text="gs")
     chart = fig.to_json()
-    response_data = {'chart': chart,'outliers': outliers_list,'rounds': rounds_list}
+
+    METEO_TABLE='CR6Irriwell2Meteo_Met30'
+    meteo=obtiene_vpdypar(METEO_TABLE)
+    meteo['timestamp']=pd.to_datetime(meteo['timestamp'])
+    meteo['date']=meteo['timestamp'].dt.date
+    dfpmet = meteo[meteo['date'] == target_date].copy()
+    # #vble_to_plot2='par'
+    # vble_x2='timestamp'
+    # scatter2 = px.scatter(dfpmet, x=vble_x2, y='par',
+    #             title="")
+    # scatter2.update_traces(marker=dict(size=6, opacity=0.6), selector=dict(mode='markers'))
+    # scatter3 = px.scatter(dfpmet, x=vble_x2, y='vpd',
+    #             title="", name='vpd')
+    # scatter3.update_traces(marker=dict(size=6, opacity=0.6), selector=dict(mode='markers'))
+
+    # fig2 = make_subplots(rows=1, cols=1,horizontal_spacing = 0.5,vertical_spacing=0.5, shared_xaxes=True,specs=[[{'secondary_y': True}]])
+    # fig2.update_layout(boxmode='overlay', width=800, height=300)
+    # fig2.add_trace(scatter2['data'][0], row=1, col=1, secondary_y=False)
+    # fig2.add_trace(scatter3['data'][0], row=1, col=1, secondary_y=True)
+    # # Configurar el primer eje (izquierdo)
+    # fig2.update_yaxes(title_text='par', secondary_y=True)
+
+    # # Configurar el segundo eje (derecho)
+    # fig2.update_yaxes(title_text='vpd', secondary_y=True, overlaying='y', side='right')
+    # fig2.update_traces(mode='lines')
+    # fig2.update_traces(line_color='red', selector=dict(name='vpd'))
+    # #fig2.update_xaxes(title_text=vble_x2)
+    # #fig2.update_yaxes(title_text='par',side='left')
+    # fig2.update_layout(coloraxis=dict(colorscale='viridis'), showlegend=True,margin=dict(l=20, r=20, t=20, b=20),
+    # paper_bgcolor="LightSteelBlue") #,paper_bgcolor='rgba(0,0,0,0)'
+    # Create figure with secondary y-axis
+    fig2 = make_subplots(specs=[[{"secondary_y": True}]])
+    # Add traces
+    fig2.add_trace(go.Scatter(x=dfpmet['timestamp'], y=dfpmet['par'], name="PAR"),secondary_y=False,)
+    fig2.add_trace(go.Scatter(x=dfpmet['timestamp'], y=dfpmet['vpd'], name="VPD"),secondary_y=True,)
+    # Add figure title
+    fig2.update_layout(width=800, height=300, margin=dict(l=20, r=20, t=20, b=20))
+    # Set x-axis title
+    #fig2.update_xaxes(title_text="xaxis title")
+    # Set y-axes titles
+    fig2.update_yaxes(title_text="<b>PAR</b>", secondary_y=False)
+    fig2.update_yaxes(title_text="<b>VPD</b>", secondary_y=True)
+    fig2.update_layout(
+    paper_bgcolor="LightSteelBlue",
+    legend=dict(
+        x=0,
+        y=1,
+        traceorder='normal',
+        orientation='h',
+        xanchor='left',
+        yanchor='top'
+        )
+    )
+
+    #fig2.show()
+    chart2 = fig2.to_json()
+
+
+    response_data = {'chart': chart,'chart2': chart2,'outliers': outliers_list,'rounds': rounds_list}
     return JsonResponse(response_data)
     
 def index(request):
     
-   
     df=db2df(DBTABLE)
     print(df)
     days=gs_days(df)

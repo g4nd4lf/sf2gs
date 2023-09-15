@@ -61,6 +61,8 @@
             const chart =JSON.parse(data["chart"])
             Plotly.newPlot('chart1', chart)
             document.getElementById("loading").style.display = "none";
+            const chart2 =JSON.parse(data["chart2"])
+            Plotly.newPlot('chart2', chart2)
         });
     }
     function getCookie(name) {
@@ -206,6 +208,7 @@
         <div id="chart_container">
             <div id="loading" class="loading"></div>
             <div id="chart1"></div>
+            <div id="chart2"></div>
         </div>
     </main>
     

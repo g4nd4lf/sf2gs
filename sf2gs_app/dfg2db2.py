@@ -341,18 +341,27 @@ def calculaJs_VPD(df):
     df=df.dropna()
     return df
 
-def roundbox2023(gs_table,station,tree,tree_zone='RIGHT',delta_gmt=2):
+def roundbox2023(gs_table,station,tree,tree_zone='ALL',delta_gmt=2):
     '''  To calculate the avergage of each round of measurments of gs. 
     During every round several repetitions (leaves) of gs are measured in each tree. Every round is splitted asuming 
     a time span higher than 500 seconds between measurements in the same tree.
     The return of this function is a dataframe keeping the avearage of all the repetitions of each tree.
     '''
     import pandas as pd
-    tree_zone='DCHA' if tree_zone=='RIGHT' else 'IZDA' #data in DB is labeled in spanish: 'DCHA'=Right and 'IZDA'=Left
+    #tree_zone='DCHA' if tree_zone=='RIGHT' else 'IZDA' #data in DB is labeled in spanish: 'DCHA'=Right and 'IZDA'=Left
     dfg0=db2df(gs_table)
     #Convert date to GMT:
     dfg0['timestamp']=pd.to_datetime(dfg0['timestamp'])-pd.Timedelta(hours=delta_gmt)
-    dfg=dfg0.query(f"irriwell=={station} and arbol=={tree} and parte_arbol=='{tree_zone}'")[["timestamp","gsw"]] 
+    #dfg=dfg0.query(f"irriwell=={station} and arbol=={tree} and parte_arbol=='{tree_zone}'")[["timestamp","gsw"]]
+    if tree_zone=='ALL':
+        dfg=dfg0.query(f"irriwell=={station} and arbol=={tree}")[["timestamp","gsw"]] 
+    else:
+        if tree_zone=='RIGHT':
+            tree_zone='DCHA'
+        else:
+            tree_zone='IZDA'
+        dfg=dfg0.query(f"irriwell=={station} and arbol=={tree} and parte_arbol=='{tree_zone}'")[["timestamp","gsw"]] 
+
     dfg=dfg.reset_index(drop=True)
     #Every round is splitted asuming a time span higher than 500 seconds between measurements in the same tree.
     dfg['date_time'] = pd.to_datetime(dfg['timestamp'])

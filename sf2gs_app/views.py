@@ -4,7 +4,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 import json
 from django.shortcuts import render
-from .dfg2db import crea_o_actualiza_tabla,lee_tablas, db2df, gs_days,irr2db, adapt_dfg, gs_days, obtiene_tzyvpd, calculaJs_VPD, irr2db, df2db, irr2db2
+from .dfg2db2 import crea_o_actualiza_tabla,lee_tablas, db2df, gs_days,irr2db, adapt_dfg, gs_days, obtiene_tzyvpd, calculaJs_VPD, irr2db, df2db, irr2db2
 import plotly.express as px
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go

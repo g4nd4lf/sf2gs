@@ -8,11 +8,14 @@ import pandas as pd
 import io
 import re
 import unicodedata
-from .dfg2db import crea_o_actualiza_tabla,lee_tablas, db2df, gs_days, adapt_dfg, obtiene_vpdypar
+from .dfg2db import crea_o_actualiza_tabla,lee_tablas, db2df, gs_days, adapt_dfg
+from .dfg2db import obtiene_vpdypar, obtiene_tzyvpd,calculaJs_VPD,calculaJs_VPD,interpoleJs,regresion, roundbox2023
 import scipy.stats as st
 #st.i
 DBTABLE='gs_irriwell2023'
 DATABASE='./db/db.sqlite3'
+METEO_TABLE='CR6Irriwell2Meteo_Met30'
+TZ_TABLE=['CR6Irriwell1Router_tzs','CR6Irriwell2Meteo_tzs','CR6Irriwell3_tzs','CR6Irriwell4_tzs']
 def upload_view(request):
     if request.method == "POST": #and request.FILES.getlist("files"):
         #files = request.FILES.getlist("files")
@@ -69,13 +72,14 @@ def findOutliers(data):
     outliers = [x for x in data if x < lower_limit or x > upper_limit]
     print(f"mean,median,Q1,Q3,IQR,lower_limit,upper_limit:{[mean,median,Q1,Q3,IQR,lower_limit,upper_limit]}")
     return(outliers)
-
+def g_averages(data):
+    pass
 def read_gs(request):
     import plotly.graph_objects as go
     import plotly.express as px
     from plotly.subplots import make_subplots
     import pandas as pd
-    import sf2gs_app.dfg2db as dfg
+    #import sf2gs_app.dfg2db2 as dfg
     from datetime import datetime
     
     body_data = request.body.decode('utf-8')  # Decodificar los bytes en una cadena
@@ -88,6 +92,8 @@ def read_gs(request):
     received_date=json_data['day']
     station=int(json_data['station'])
     tree=int(json_data['tree'].split(" ")[1])
+    depth=int(json_data['depth'])
+    canopy_zone=str(json_data['canopy_zone'])
     target_date = datetime.strptime(received_date, '%d/%m/%Y').date()
     label=f"S{station}T{tree}"
     #target_date = pd.to_datetime(recived_date, format='%d/%m/%Y').strftime('%Y-%m-%d')
@@ -99,7 +105,7 @@ def read_gs(request):
     
     #Read gs from DB and add round column to identify each round of repetitions
     DBTABLE='gs_irriwell2023'
-    df=dfg.roundbox2023(DBTABLE,station=station,tree=tree)
+    df=roundbox2023(DBTABLE,station=station,tree=tree,tree_zone=canopy_zone)
     rounds = df.groupby('round').agg({'timestamp': 'mean', 'gsw': 'mean'}).reset_index()
 
     #rounds.head()
@@ -140,7 +146,7 @@ def read_gs(request):
         filter_rounds = (dfp['labels'] == r)
         dfp=dfp[~filter_rounds]
     #dfp["labels"]=[t.strftime('%d/%m %H:%M') for t in dfp["rounddate"]]
-
+    dfg=g_averages(dfp)
     x_label = 'roundtime'
     y_label = 'gsw'
     #dfp=df.iloc[:36,:]
@@ -179,11 +185,30 @@ def read_gs(request):
     fig.update_yaxes(title_text="gs")
     chart = fig.to_json()
 
-    METEO_TABLE='CR6Irriwell2Meteo_Met30'
     meteo=obtiene_vpdypar(METEO_TABLE)
     meteo['timestamp']=pd.to_datetime(meteo['timestamp'])
     meteo['date']=meteo['timestamp'].dt.date
     dfpmet = meteo[meteo['date'] == target_date].copy()
+
+    #INTERPOLATION gs vs Js/VPD
+    #Calculate Js/vpd
+    df_tz=obtiene_tzyvpd(TZ_TABLE[station-1],METEO_TABLE)
+    df_Js_VPD=calculaJs_VPD(df_tz)
+    #df_Js_VPD.to_excel(f"Js_VPD_Est{s}")
+    dfj0=df_Js_VPD.copy()
+    # particularize for a specific tree and thermocouple depth (in DB thermocouple deepth use oposite notation 0: deep  and 1: shalow)
+    dfj=dfj0.query(f"arbol=={tree} and sup=={int(not(depth))}")[["Js_VPD"]] 
+    #2. Interpolate Js/VPD to the times where gs was measured
+
+    dfgs = dfp.groupby('round').agg({'rounddate': 'first', 'gsw': 'mean'}).reset_index()#['gsw'].mean().reset_index()
+
+    # Seleccionar solo las columnas 'timestamp' y 'gsw' promediado
+    dfgs = dfgs[['rounddate', 'gsw']]
+    dfgs = dfgs.rename(columns={'rounddate': 'timestamp'})
+    dfjg=interpoleJs(dfj,dfgs) #the resulting dataframe includes the interpolated Js/VPD and gs at the corresponding measuring times
+    #3. Linear regresion correlation
+    fig_reg=regresion(dfjg)
+
     # #vble_to_plot2='par'
     # vble_x2='timestamp'
     # scatter2 = px.scatter(dfpmet, x=vble_x2, y='par',
@@ -209,34 +234,25 @@ def read_gs(request):
     # fig2.update_layout(coloraxis=dict(colorscale='viridis'), showlegend=True,margin=dict(l=20, r=20, t=20, b=20),
     # paper_bgcolor="LightSteelBlue") #,paper_bgcolor='rgba(0,0,0,0)'
     # Create figure with secondary y-axis
-    fig2 = make_subplots(specs=[[{"secondary_y": True}]])
-    # Add traces
-    fig2.add_trace(go.Scatter(x=dfpmet['timestamp'], y=dfpmet['par'], name="PAR"),secondary_y=False,)
-    fig2.add_trace(go.Scatter(x=dfpmet['timestamp'], y=dfpmet['vpd'], name="VPD"),secondary_y=True,)
-    # Add figure title
-    fig2.update_layout(height=400, margin=dict(l=20, r=20, t=20, b=20))
-    # Set x-axis title
-    #fig2.update_xaxes(title_text="xaxis title")
-    # Set y-axes titles
-    fig2.update_yaxes(title_text="<b>PAR</b>", secondary_y=False)
-    fig2.update_yaxes(title_text="<b>VPD</b>", secondary_y=True)
-    fig2.update_layout(
-    paper_bgcolor="LightSteelBlue",
-    legend=dict(
-        x=0,
-        y=1,
-        traceorder='normal',
-        orientation='h',
-        xanchor='left',
-        yanchor='top'
-        )
-    )
-
-    #fig2.show()
-    chart2 = fig2.to_json()
+    # fig2 = make_subplots(specs=[[{"secondary_y": True}]])
+    # fig2.add_trace(go.Scatter(x=dfpmet['timestamp'], y=dfpmet['par'], name="PAR2"),secondary_y=False,)
+    # fig2.add_trace(go.Scatter(x=dfpmet['timestamp'], y=dfpmet['vpd'], name="VPD2"),secondary_y=True,)
+    # fig2.update_layout(height=400, margin=dict(l=20, r=20, t=20, b=20))
+    # fig2.update_yaxes(title_text="<b>PAR2</b>", secondary_y=False)
+    # fig2.update_yaxes(title_text="<b>VPD2</b>", secondary_y=True)
+    # fig2.update_layout(paper_bgcolor="LightSteelBlue",legend=dict(x=0,y=1,traceorder='normal',orientation='h',xanchor='left',yanchor='top'))
+    chart2 = fig_reg.to_json()
+    fig3 = make_subplots(specs=[[{"secondary_y": True}]])
+    fig3.add_trace(go.Scatter(x=dfpmet['timestamp'], y=dfpmet['par'], name="PAR"),secondary_y=False,)
+    fig3.add_trace(go.Scatter(x=dfpmet['timestamp'], y=dfpmet['vpd'], name="VPD"),secondary_y=True,)
+    fig3.update_layout(height=400, margin=dict(l=20, r=20, t=20, b=20))
+    fig3.update_yaxes(title_text="<b>PAR</b>", secondary_y=False)
+    fig3.update_yaxes(title_text="<b>VPD</b>", secondary_y=True)
+    fig3.update_layout(paper_bgcolor="LightSteelBlue",legend=dict(x=0,y=1,traceorder='normal',orientation='h',xanchor='left',yanchor='top'))
+    chart3 = fig3.to_json()
 
 
-    response_data = {'chart': chart,'chart2': chart2,'outliers': outliers_list,'rounds': rounds_list}
+    response_data = {'chart': chart,'chart2': chart2,'chart3': chart3,'outliers': outliers_list,'rounds': rounds_list}
     return JsonResponse(response_data)
     
 def index(request):

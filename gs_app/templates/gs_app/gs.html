@@ -22,6 +22,10 @@
         const station_selected=st_select.options[st_select.selectedIndex].text
         const tree_select=document.querySelector('#sel_tree')
         const tree_selected=tree_select.options[tree_select.selectedIndex].text
+        const depth_select=document.querySelector('#sel_depth')
+        const depth_selected=depth_select.options[depth_select.selectedIndex].value
+        const canopy_zone_select=document.querySelector('#sel_zone')
+        const canopy_zone_selected=canopy_zone_select.options[canopy_zone_select.selectedIndex].value
         fetch("{% url 'read_gs' %}",{
         method: 'POST',
         headers: {
@@ -33,6 +37,8 @@
             day: newdate,
             station: station_selected,
             tree: tree_selected,
+            depth: depth_selected,
+            canopy_zone: canopy_zone_selected,
             outliers_removed: ouliers_removed,
             rounds_removed: rounds_removed
         })
@@ -62,8 +68,8 @@
             Plotly.newPlot('chart1', chart)
             const chart2 =JSON.parse(data["chart2"])
             Plotly.newPlot('chart2', chart2)
-            //const chart3 =JSON.parse(data["chart3"])
-            Plotly.newPlot('chart3', chart2)
+            const chart3 =JSON.parse(data["chart3"])
+            Plotly.newPlot('chart3', chart3)
             document.getElementById("loading").style.display = "none";
             
         });
@@ -167,7 +173,21 @@
                 <option value="2">Tree 2</option>
             </select>
         </div>
-    
+        <div class="grupo">
+            <h3>Therm. depth</h3>
+            <select class="sel2elem" id='sel_depth'>
+                <option value="0" selected="selected">Shallow</option>
+                <option value="1">Depth</option>
+            </select>
+        </div>
+        <div class="grupo">
+            <h3>Canopy zone (gs)</h3>
+            <select class="sel2elem" id='sel_zone'>
+                <option value="LEFT" selected="selected">Left</option>
+                <option value="RIGHT">Right</option>
+                <option value="ALL">Both</option>
+            </select>
+        </div>
     {% csrf_token %}
         <div class="grupo">
             <h3>Measurement day</h3>

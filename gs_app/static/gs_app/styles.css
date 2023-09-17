@@ -33,22 +33,25 @@ h1 {
 .menu {
     background-color: #fff;
     border: 1px solid #ccc;
-    padding: 20px;
+    padding: 5px;
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 300px;
 }
-
+main {
+  width:100%;
+}
+label {
+  font-size: small;
+}
 #chart_container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
+    background-color: LightSteelBlue;
+    width: 100%;
 }
 
-.js-plotly-plot{
-  flex: 1;
-  max-width: 100%;
-  background-color: red;
-}
-.chartx {
+.charty {
   flex: 1;
   width: 50%;
   background-color: red;

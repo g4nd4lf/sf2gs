@@ -175,7 +175,7 @@ def plot_view(request):
         jsfilter=f"(Js>={js_range[0]} and Js<={js_range[1]})"
         vpdfilter=f"(vpd>={vpd_range[0]} and vpd<={vpd_range[1]})"
         parfilter=f"(par>={par_range[0]} and par<={par_range[1]})"
-        df_filt=df_Js_VPD.query(datefilter).query(f"arbol=={tree} and sup=={int(not(thermocouple_depth))}")
+        df_filt=df_Js_VPD.query(datefilter).query(f"arbol=={tree} and sup=={int(not(int(thermocouple_depth)))}")
         df_filt=df_filt.query(jsfilter).query(vpdfilter).query(parfilter)
         
         timestamps = pd.to_datetime(df_filt['timestamp'])

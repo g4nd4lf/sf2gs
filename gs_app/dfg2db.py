@@ -271,14 +271,22 @@ def regresion(df):
                     marker=go.Marker(color='rgb(31, 119, 180)'),
                     name='Fit'
                     )
-
-    annotation = go.Annotation(
-                    x=x[2],
-                    y=y[2],
-                    text=line_str,
-                    showarrow=False,
-                    font=go.Font(size=16)
-                    )
+    if len(df)<=2:
+        annotation = go.Annotation(
+                        x=x[0],
+                        y=y[0],
+                        text=line_str,
+                        showarrow=False,
+                        font=go.Font(size=16)
+                        )
+    else:
+        annotation = go.Annotation(
+                        x=x[2],
+                        y=y[2],
+                        text=line_str,
+                        showarrow=False,
+                        font=go.Font(size=16)
+                        )
     layout = go.Layout(
                     title='Js/VPD vs gs',
                     plot_bgcolor='rgb(229, 229, 229)',

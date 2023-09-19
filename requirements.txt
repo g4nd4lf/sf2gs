@@ -1,4 +1,6 @@
-python==3.11.4
 django==4.2.3
+django-extensions==3.2.3
 pandas==2.0.3
 plotly==5.16.0
+scipy==1.11.1
+matplotlib==3.7.2

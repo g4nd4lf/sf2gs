@@ -254,6 +254,92 @@ def read_gs(request):
 
     response_data = {'chart': chart,'chart2': chart2,'chart3': chart3,'outliers': outliers_list,'rounds': rounds_list}
     return JsonResponse(response_data)
+
+def download(request):
+    import plotly.graph_objects as go
+    import plotly.express as px
+    from plotly.subplots import make_subplots
+    import pandas as pd
+    #import sf2gs_app.dfg2db2 as dfg
+    from datetime import datetime
+    
+    body_data = request.body.decode('utf-8')  # Decodificar los bytes en una cadena
+    json_data = json.loads(body_data)
+    outliers_removed=json_data['outliers_removed']
+    rounds_removed=json_data['rounds_removed']
+    print("OUTLIERS REMOVED: ",outliers_removed)
+    print("ROUNDS REMOVED: ",rounds_removed)
+    
+    received_date=json_data['day']
+    station=int(json_data['station'])
+    tree=int(json_data['tree'].split(" ")[1])
+    depth=int(json_data['depth'])
+    canopy_zone=str(json_data['canopy_zone'])
+    target_date = datetime.strptime(received_date, '%d/%m/%Y').date()
+    label=f"S{station}T{tree}"
+    DBTABLE='gs_irriwell2023'
+    df=roundbox2023(DBTABLE,station=station,tree=tree,tree_zone=canopy_zone)
+    rounds = df.groupby('round').agg({'timestamp': 'mean', 'gsw': 'mean'}).reset_index()
+    timestamps = pd.to_datetime(rounds["timestamp"])
+    tminutes = (timestamps - pd.Timestamp('1970-01-01')) // pd.Timedelta('1min')
+    tminutes = tminutes.astype(int)
+    tminutes=tminutes-tminutes[0]
+    df["roundtime"]=[tminutes[r] for r in df["round"]]
+    
+    df['date']=df['timestamp'].dt.date
+    #Removing outliers from dataframe:
+    for o in outliers_removed:
+        filter_outliers = (df['roundtime'] == int(float(o.split(' , ')[0]))) & (df['gsw'] == float(o.split(' , ')[2]))
+        df=df[~filter_outliers]    
+    dfp = df[df['date'] == target_date].copy()
+    rounds_day = dfp.groupby('round').agg({'roundtime': 'mean','timestamp': 'mean', 'gsw': 'mean'}).reset_index()
+    timestamps = pd.to_datetime(rounds_day["timestamp"])
+    dfp.loc[:, "rounddate"] = dfp["round"].apply(lambda r: rounds_day.loc[rounds_day['round'] == r, 'timestamp'].iloc[0])
+
+    dfp.loc[:, "labels"] = dfp["rounddate"].apply(lambda t: t.strftime('%d/%m %H:%M'))
+    for r in rounds_removed:
+        filter_rounds = (dfp['labels'] == r)
+        dfp=dfp[~filter_rounds]
+    dfg=g_averages(dfp)
+    x_label = 'roundtime'
+    y_label = 'gsw'
+    
+    outliers = dfp.groupby(x_label)[y_label].apply(findOutliers).reset_index()
+    outliers_list=[]
+    print("Listing outliers with timestamp")
+    for id,r in enumerate(outliers[y_label]):
+        if len(r)>0:
+            for x in r:
+                outlier_roundtime=rounds_day.loc[id,'roundtime']
+                outlier_time=rounds_day.loc[id,'timestamp'].strftime('%Y-%m-%d %H:%M')
+                outlier=str(outlier_roundtime)+" , "+outlier_time+" , "+str(x)
+                outliers_list.append(outlier)
+                print(outlier)
+    
+    rounds_list = list(set(dfp['labels']))
+    rounds_list.sort()
+    
+    #INTERPOLATION gs vs Js/VPD
+    #Calculate Js/vpd
+    df_tz=obtiene_tzyvpd(TZ_TABLE[station-1],METEO_TABLE)
+    df_Js_VPD=calculaJs_VPD(df_tz)
+    dfj0=df_Js_VPD.copy()
+    # particularize for a specific tree and thermocouple depth (in DB thermocouple deepth use oposite notation 0: deep  and 1: shalow)
+    dfj=dfj0.query(f"arbol=={tree} and sup=={int(not(depth))}")[["Js_VPD"]] 
+    #2. Interpolate Js/VPD to the times where gs was measured
+    dfgs = dfp.groupby('round').agg({'rounddate': 'first', 'gsw': 'mean'}).reset_index()#['gsw'].mean().reset_index()
+    # Seleccionar solo las columnas 'timestamp' y 'gsw' promediado
+    dfgs = dfgs[['rounddate', 'gsw']]
+    dfgs = dfgs.rename(columns={'rounddate': 'timestamp'})
+    dfjg=interpoleJs(dfj,dfgs) #the resulting dataframe includes the interpolated Js/VPD and gs at the corresponding measuring times
+    #3. Linear regresion correlation
+    #fig_reg=regresion(dfjg)
+    #fileLabel=f"S{station}T{tree}d{depth}c{canopy_zone}_{target_date}"
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'data.csv'
+    dfjg.to_csv(path_or_buf=response, index=False)    
+    return response
     
 def index(request):
     

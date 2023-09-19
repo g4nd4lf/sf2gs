@@ -74,6 +74,62 @@
             
         });
     }
+    function download(event){
+        console.log(event)
+        document.getElementById("loading").style.display = "block";
+        const newdate=document.querySelector('#gs_day').value
+        console.log(newdate)
+        const divs_outliers_removed= document.querySelector('#outliers_removed').querySelectorAll('div')
+        const ouliers_removed = Array.from(divs_outliers_removed).map(elemento => elemento.id).filter(Boolean);
+        const divs_rounds_removed= document.querySelector('#rounds_removed').querySelectorAll('div')
+        const rounds_removed = Array.from(divs_rounds_removed).map(elemento => elemento.id).filter(Boolean);
+        
+        const st_select=document.querySelector('#sel_station')
+        const station_selected=st_select.options[st_select.selectedIndex].text
+        const tree_select=document.querySelector('#sel_tree')
+        const tree_selected=tree_select.options[tree_select.selectedIndex].text
+        const depth_select=document.querySelector('#sel_depth')
+        const depth_selected=depth_select.options[depth_select.selectedIndex].value
+        const canopy_zone_select=document.querySelector('#sel_zone')
+        const canopy_zone_selected=canopy_zone_select.options[canopy_zone_select.selectedIndex].value
+        fetch("{% url 'download' %}",{
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json, text/plain, */*',
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado
+        },
+        body: JSON.stringify({
+            day: newdate,
+            station: station_selected,
+            tree: tree_selected,
+            depth: depth_selected,
+            canopy_zone: canopy_zone_selected,
+            outliers_removed: ouliers_removed,
+            rounds_removed: rounds_removed
+        })
+        })
+        .then(
+                    //response => JSON.parse(response)
+                    response=>response.blob()
+                )
+                .then(blob => {
+                    document.getElementById("loading").style.display = "none";
+                    // Crear un enlace temporal para descargar el archivo
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.style.display = "none";
+                    a.href = url;
+                    fileLabel=`S${station_selected}T${tree_selected}d${depth_selected}c${canopy_zone_selected}_${newdate}`
+                    a.download = `Js_gs_${fileLabel}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error("Error uploading files:", error);
+                });
+    }
     function getCookie(name) {
         var value = "; " + document.cookie;
         var parts = value.split("; " + name + "=");
@@ -140,6 +196,7 @@
     document.addEventListener('DOMContentLoaded', function(event) { 
         csrftoken = getCookie('csrftoken'); //para resolver problemas de cors       
         document.querySelector('#plot_button').onclick = plot;
+        document.querySelector('#download_button').onclick = download;
         document.querySelector('#gs_day').onchange = plot;
         document.querySelector('#remove_outlier').onclick = remove_outlier;
         document.querySelector('#remove_round').onclick = remove_round;
@@ -198,6 +255,9 @@
                         {% endfor %}
                 </select>
                 <button id="plot_button"> Plot </button>
+            </div>
+            <div id="div_download">
+                <button id="download_button"> Download </button>
             </div>
         </div>
         <hr>

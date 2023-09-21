@@ -82,7 +82,7 @@
                 const tree=trees_selected[0].value
                 const thermocouple_depth=thermocouple_depths_selected[0].value
                 const csrftoken = getCookie('csrftoken');
-                fetch("{% url 'download' %}", {
+                fetch("{% url 'download-sf2gs' %}", {
                     method: "POST",
                     headers: {
                         //'Accept': 'application/json, text/plain, */*',

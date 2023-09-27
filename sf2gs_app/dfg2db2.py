@@ -79,7 +79,9 @@ def df2db2(df, db):
     # Crear la tabla si no existe
     #2. Creamos la tabla db vacia si no existe
     columnas = df.columns.tolist()
+    #filter_columns=
     field_names=', '.join(columnas) #para generar los campos que requieren las consulta sql
+    
     #min_field_names = ", ".join([f"MIN({col})" for col in columnas])
     placeholders = ', '.join(['?'] * len(columnas))
     

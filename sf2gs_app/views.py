@@ -203,7 +203,8 @@ def plot_view(request):
         fig.update_xaxes(title_text=label_x)
         fig.update_yaxes(title_text=label_vble_to_plot)
         fig.update_layout(coloraxis=dict(colorscale='viridis'), showlegend=True,paper_bgcolor='rgba(0,0,0,0)')
-        #paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)'
+        
+        s#paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)'
         time1_7=time.time()
         print("time1_7: ", time1_7)
         print("elpased1_7: ",time1_7-time1)
@@ -233,15 +234,14 @@ def plot_view(request):
         print("End data proccess plot_view: ", time2)
         print("elpased: ",time2-time1)
         return JsonResponse(response_data)
-    
-def index(request):
+def getRangeDateAndStations_tz():
+    #Read all tables from DB
     alltables=lee_tablas()
-    print("tablas:")
-    print(alltables)
-    #return HttpResponse(alltables)
-    #Calculamos el rango de nuestros datos
-    alldates=set()
+    #Find the stations
     tz_tables=[t for t in alltables if (("_tzs" in t) and ("_Jsvpd" not in t))]
+    
+    #Find date range from tz tables:
+    alldates=set()
     first="no data"
     last="no data"
     if len(tz_tables)>0:
@@ -253,21 +253,15 @@ def index(request):
                 last=mydates.iloc[-1]
                 alldates.add(first)
                 alldates.add(last)
-                first=min(alldates).strftime('%Y-%m-%d')
-                last=max(alldates).strftime('%Y-%m-%d')
-        print(first," - ",last)
-        #gs:
-    df=db2df(DBTABLE)
-    gsdays=gs_days(df)
-    print(gsdays)
-    fstations=[{"str":t} for t in tz_tables]
-    fdays=[{"str":d} for d in gsdays]
-    rangedate={"start":first,"end":last}
-    #for t in tablas:
-    #    tz=db2df(tablas)
-    return render(request, 'sf2gs_app/index.html', 
-                  {"gsdays": fdays, "stations":fstations, "rangedate":rangedate}
-                )
+        first=min(alldates).strftime('%Y-%m-%d')
+        last=max(alldates).strftime('%Y-%m-%d')
+    return first,last,tz_tables
+
+def index(request):
+    #Find stations and range dates for tz measurements from DB:
+    firstday,lastday, stations = getRangeDateAndStations_tz() #tzs
+    rangedate={"start":firstday,"end":lastday}
+    return render(request, 'sf2gs_app/index.html', {"stations":stations, "rangedate":rangedate})
 
 def upload_file(request):
     import io, re

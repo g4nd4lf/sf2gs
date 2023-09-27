@@ -218,7 +218,7 @@
                     return totalDays - 1;
                 },
                 setup: (picker) => {
-                    picker.on('selected', (date1, date2) => {
+                    picker.on('selected', (date1, date2) => {startTimePicker
                         console.log('Fecha de inicio:', date1);
                         console.log('Fecha de fin:', date2);
                         //start_date.push(date1);
@@ -346,7 +346,7 @@
             <h2>Station</h2>
             <select multiple id='sel_station'>
                 {% for s in stations %}
-                <option value="{{ s.str }}">{{ s.str }}</option>
+                <option value="{{ s }}">{{ s }}</option>
                 {% endfor %}
             </select>
         </div>

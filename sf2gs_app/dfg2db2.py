@@ -1,3 +1,4 @@
+import pandas as pd
 
 def irr2dic():
     import pandas as pd
@@ -375,3 +376,96 @@ def roundbox2023(gs_table,station,tree,tree_zone='ALL',delta_gmt=2):
     #rounds = dfg.groupby('round').mean()
     #rounds.set_index('timestamp', inplace=True)
     return dfg
+
+def getRangeDateAndStations_tz():
+    '''Get date range of tz measurements (from when and to when data were collected)
+       and the stations installed (dataloggers) to fill the menus that allows the
+       user to filter for range or station.
+    '''
+    #Read all tables from DB
+    alltables=lee_tablas()
+    #Find the stations
+    tz_tables=[t for t in alltables if (("_tzs" in t) and ("_Jsvpd" not in t))]
+    #Find date range from tz tables:
+    alldates=set()
+    first="no data"
+    last="no data"
+    if len(tz_tables)>0:
+        for table in tz_tables:
+            df=db2df(table)
+            if not df.empty:
+                mydates=pd.to_datetime(df['timestamp']).sort_values()
+                first=mydates[0]
+                last=mydates.iloc[-1]
+                alldates.add(first)
+                alldates.add(last)
+        first=min(alldates).strftime('%Y-%m-%d')
+        last=max(alldates).strftime('%Y-%m-%d')
+    return first,last,tz_tables
+
+def createFig(df,vble_x,label_x,vble_y,label_y,title,linemode):
+            import plotly.express as px
+            from plotly.subplots import make_subplots
+            scatter1 = px.scatter(df, x=vble_x, y=vble_y, color="daterange", color_continuous_scale='viridis',
+                    title="Js vs vpd")
+            scatter1.update_traces(marker=dict(size=6, opacity=0.6), selector=dict(mode='markers'))
+            fig = make_subplots(rows=1, cols=1,subplot_titles=[title],horizontal_spacing = 0.5,vertical_spacing=0.5)
+            fig.update_layout(boxmode='overlay', width=800, height=500)
+            fig.add_trace(scatter1['data'][0], row=1, col=1)
+            fig.update_xaxes(title_text=label_x)
+            fig.update_yaxes(title_text=label_y)
+            fig.update_layout(coloraxis=dict(colorscale='viridis'), showlegend=True,paper_bgcolor='rgba(0,0,0,0)')
+            if linemode:
+                fig.update_traces(mode='lines')
+            chart = fig.to_json()
+            return chart
+
+def readParameters(request):
+    import json
+    body_unicode = request.body.decode('utf-8')
+    data = json.loads(body_unicode)
+    
+    start_date=[]
+    for date in data['start_date']:
+        if type(date)==type(""):
+            start_date.append(date.split("T")[0])
+        else:
+            start_date.append(date['dateInstance'].split("T")[0])
+    end_date=[]
+    for date in data['end_date']:
+        if type(date)==type(""):
+            end_date.append(date.split("T")[0])
+        else:
+            end_date.append(date['dateInstance'].split("T")[0])
+    start_time=data['start_time']
+    end_time=data['end_time']
+    station=data['station']
+    tree=data['tree']
+    thermocouple_depth=data['thermocouple_depth']
+    vpd_range=data['vpd_range']
+    par_range=data['par_range']
+    js_range=data['js_range']
+    vble_to_plot="Js"
+    label_vble_to_plot="Js"
+    vble_x="vpd"
+    label_x="VPD"
+    if data['vble_to_plot']=="Js_vpd":
+        vble_to_plot="Js_VPD"
+        label_vble_to_plot="Js/VPD"
+    elif data['vble_to_plot']=="Js_vs_t":
+        vble_to_plot="Js"
+        label_vble_to_plot="Js"
+        vble_x="timestamp"
+        label_x="timestamp"
+    elif data['vble_to_plot']=="Js_vpd_vs_t":
+        vble_to_plot="Js_VPD"
+        label_vble_to_plot="Js/VPD"
+        vble_x="timestamp"
+        label_x="timestamp"
+    vble_to_plot2="vpd"
+    if data['vble_to_plot2']=="vpd_vs_time":
+        vble_to_plot2="vpd"
+    elif data['vble_to_plot2']=="par_vs_time":
+        vble_to_plot2="par"
+    return start_date, end_date, start_time, end_time, station, tree, thermocouple_depth, vpd_range, par_range,js_range, vble_to_plot, label_vble_to_plot, vble_x, label_x, vble_to_plot2
+        

@@ -30,7 +30,8 @@ function updateDB(){
                     }
         );
 }
-function download(){//,station=1,tree=1,thermocouple_depth=0){
+function download(){
+    //# 1. Collect all parameters from user selections:
     let start_date=[]
     let end_date=[]
     for (const datepicker of datepickers) {
@@ -58,11 +59,11 @@ function download(){//,station=1,tree=1,thermocouple_depth=0){
     const tree=trees_selected[0].value
     const thermocouple_depth=thermocouple_depths_selected[0].value
     const csrftoken = getCookie('csrftoken');
+
+    //# 2. Call to download_view fucntion on views.py passing all the parameters selected by the user
     fetch("{% url 'download-sf2gs' %}", {
         method: "POST",
         headers: {
-            //'Accept': 'application/json, text/plain, */*',
-            //'Content-Type': 'application/json',
             'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado
         },
         body: JSON.stringify(
@@ -80,14 +81,12 @@ function download(){//,station=1,tree=1,thermocouple_depth=0){
             },
         )
     })
-    //.then(response => response.json()) //var dat =JSON.parse("{{ data |escapejs }}")
     .then(
-        //response => JSON.parse(response)
         response=>response.blob()
     )
     .then(blob => {
         document.getElementById("loading").style.display = "none";
-        // Crear un enlace temporal para descargar el archivo
+        // Create a temporal link to download the file
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.style.display = "none";
@@ -102,7 +101,8 @@ function download(){//,station=1,tree=1,thermocouple_depth=0){
     });
 }
 
-function plot(){//,station=1,tree=1,thermocouple_depth=0){
+function plot(){
+    //# 1. Collect all parameters from user selections:
     let start_date=[]
     let end_date=[]
     for (const datepicker of datepickers) {
@@ -110,9 +110,7 @@ function plot(){//,station=1,tree=1,thermocouple_depth=0){
         end_date.push(datepicker.getEndDate());
     }
     const start_time= document.querySelector("#start_time").value
-    const end_time= document.querySelector("#end_time").value
-    
-    time0 = new Date();
+    const end_time= document.querySelector("#end_time").value  
     document.getElementById("loading").style.display = "block";
     const vble_to_plot = document.querySelector('input[name="js_or_js_vpd"]:checked').value;
     const vble_to_plot2 = document.querySelector('input[name="vpd_or_par"]:checked').value;
@@ -131,11 +129,11 @@ function plot(){//,station=1,tree=1,thermocouple_depth=0){
     vpd_range=[parseFloat(vpdSlider.getValue().split(",")[0]),parseFloat(vpdSlider.getValue().split(",")[1])]
     par_range=[parseFloat(parSlider.getValue().split(",")[0]),parseFloat(parSlider.getValue().split(",")[1])]
     js_range=[parseFloat(jsSlider.getValue().split(",")[0]),parseFloat(jsSlider.getValue().split(",")[1])]
+    
+    //# 2. Call to plot_view fucntion on views.py passing all the parameters selected by the user
     fetch(plotUrl, {
         method: "POST",
         headers: {
-            //'Accept': 'application/json, text/plain, */*',
-            //'Content-Type': 'application/json',
             'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado
         },
         body: JSON.stringify(
@@ -154,37 +152,22 @@ function plot(){//,station=1,tree=1,thermocouple_depth=0){
             },
         )
     })
-    //.then(response => response.json()) //var dat =JSON.parse("{{ data |escapejs }}")
     .then(
-        //response => JSON.parse(response)
         response=>response.json()
     )
     .then(data => {
-        //console.log(data["chart"]);
-        let time3= new Date();
-        console.log("time3: ",time3)
-        console.log("elapsed3: ",(time3-time0)/1000.0)
-        
         const chart =JSON.parse(data["chart"])
         Plotly.newPlot('chart1', chart)
         const chart2 =JSON.parse(data["chart2"])
-        Plotly.newPlot('chart2', chart2)
-        
+        Plotly.newPlot('chart2', chart2)        
         document.getElementById("loading").style.display = "none";
-        let time4= new Date();
-        console.log("time4: ",time4)
-        console.log("elapsed4: ",(time4-time0)/1000.0)
-        // Handle the response from the server
     })
     .catch(error => {
         console.error("Error uploading files:", error);
     });
 }   
 
-function initializeDatepickers(def_start_Date,def_end_Date){
-    //let start_date=[]
-    //let end_date=[]
-            
+function initializeDatepickers(def_start_Date,def_end_Date){        
     const datepicker=new Litepicker({
         element: document.getElementById('js_daterange'),
         singleMode: false,
@@ -194,21 +177,13 @@ function initializeDatepickers(def_start_Date,def_end_Date){
         },
         tooltipNumber: (totalDays) => {
             return totalDays - 1;
-        },
-        setup: (picker) => {
-            picker.on('selected', (date1, date2) => {startTimePicker
-                console.log('Fecha de inicio:', date1);
-                console.log('Fecha de fin:', date2);
-                //start_date.push(date1);
-                //end_date.push(date2);
-            });
-        },
+        }
     })
         
     datepicker.setDateRange(def_start_Date, def_end_Date);
     const daterangeContainer = document.querySelector('.daterange_container');
     const addrange=document.querySelector('#add_range')//.onclick =add_range;
-    //const datepickers = [];
+    
     datepickers.push(datepicker)
     addrange.addEventListener('click', () => {
         count_ranges++
@@ -236,15 +211,7 @@ function initializeDatepickers(def_start_Date,def_end_Date){
             },
             tooltipNumber: (totalDays) => {
                 return totalDays - 1;
-            },
-            setup: (picker) => {
-                picker.on('selected', (date1, date2) => {
-                    console.log('Fecha de inicio:', date1);
-                    console.log('Fecha de fin:', date2);
-                    //start_date.push(date1)
-                    //end_date.push(date2)
-                });
-            },
+            }
         });
         datepickers.push(newDatepicker);
         input.addEventListener('change', (event) => {
@@ -306,3 +273,4 @@ function initializeOptions(){
             });
             document.querySelectorAll('.rs-tooltip')[0].style.opacity='50%'
 }
+

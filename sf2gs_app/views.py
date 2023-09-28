@@ -234,6 +234,7 @@ def plot_view(request):
         print("End data proccess plot_view: ", time2)
         print("elpased: ",time2-time1)
         return JsonResponse(response_data)
+    
 def getRangeDateAndStations_tz():
     #Read all tables from DB
     alltables=lee_tablas()

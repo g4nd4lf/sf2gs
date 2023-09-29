@@ -449,25 +449,28 @@ def readParameters(request):
     label_vble_to_plot="Js"
     vble_x="vpd"
     label_x="VPD"
-    if data['vble_to_plot']=="Js_vpd":
-        vble_to_plot="Js_VPD"
-        label_vble_to_plot="Js/VPD"
-    elif data['vble_to_plot']=="Js_vs_t":
-        vble_to_plot="Js"
-        label_vble_to_plot="Js"
-        vble_x="timestamp"
-        label_x="timestamp"
-    elif data['vble_to_plot']=="Js_vpd_vs_t":
-        vble_to_plot="Js_VPD"
-        label_vble_to_plot="Js/VPD"
-        vble_x="timestamp"
-        label_x="timestamp"
-    vble_to_plot2="vpd"
-    if data['vble_to_plot2']=="vpd_vs_time":
+    if request.path=='/sf2gs/plot':
+        if data['vble_to_plot']=="Js_vpd":
+            vble_to_plot="Js_VPD"
+            label_vble_to_plot="Js/VPD"
+        elif data['vble_to_plot']=="Js_vs_t":
+            vble_to_plot="Js"
+            label_vble_to_plot="Js"
+            vble_x="timestamp"
+            label_x="timestamp"
+        elif data['vble_to_plot']=="Js_vpd_vs_t":
+            vble_to_plot="Js_VPD"
+            label_vble_to_plot="Js/VPD"
+            vble_x="timestamp"
+            label_x="timestamp"
         vble_to_plot2="vpd"
-    elif data['vble_to_plot2']=="par_vs_time":
-        vble_to_plot2="par"
-    return start_date, end_date, start_time, end_time, station, tree, thermocouple_depth, vpd_range, par_range,js_range, vble_to_plot, label_vble_to_plot, vble_x, label_x, vble_to_plot2
+        if data['vble_to_plot2']=="vpd_vs_time":
+            vble_to_plot2="vpd"
+        elif data['vble_to_plot2']=="par_vs_time":
+            vble_to_plot2="par"
+        return start_date, end_date, start_time, end_time, station, tree, thermocouple_depth, vpd_range, par_range,js_range, vble_to_plot, label_vble_to_plot, vble_x, label_x, vble_to_plot2
+    else:
+        return start_date, end_date, start_time, end_time, station, tree, thermocouple_depth, vpd_range, par_range,js_range
 
 def filter_Js_VPD(df_Js_VPD,start_date,end_date,start_time,end_time,js_range,vpd_range,par_range,tree,thermocouple_depth):
             datefilter=f"((timestamp>='{start_date[0]}') and (timestamp<='{end_date[0]}'))"

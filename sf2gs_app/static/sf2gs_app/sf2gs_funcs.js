@@ -61,7 +61,7 @@ function download(){
     const csrftoken = getCookie('csrftoken');
 
     //# 2. Call to download_view fucntion on views.py passing all the parameters selected by the user
-    fetch("{% url 'download-sf2gs' %}", {
+    fetch(downloadUrl, {
         method: "POST",
         headers: {
             'X-CSRFToken': csrftoken  // Incluir el token CSRF en el encabezado

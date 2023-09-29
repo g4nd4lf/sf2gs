@@ -24,6 +24,8 @@
         let vpdSlider,parSlider,jsSlider
         const datepickers = [];
         const plotUrl="{% url 'plot' %}"
+        const downloadUrl="{% url 'download-sf2gs' %}"
+        
         document.addEventListener('DOMContentLoaded', function(event) {
             /////FUNCIONES SACADAS DE ESTE PUNTO A STATIC
             const def_start_Date = new Date("{{ rangedate.start }}");

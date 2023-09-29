@@ -32,52 +32,17 @@ def updatedb(request):
     return JsonResponse(data)
 def download_view(request):
     if request.method == "POST":
-        body_unicode = request.body.decode('utf-8')
-        data = json.loads(body_unicode)
-        start_date=[]
-        for date in data['start_date']:
-            if type(date)==type(""):
-                start_date.append(date.split("T")[0])
-            else:
-                start_date.append(date['dateInstance'].split("T")[0])
-        end_date=[]
-        for date in data['end_date']:
-            if type(date)==type(""):
-                end_date.append(date.split("T")[0])
-            else:
-                end_date.append(date['dateInstance'].split("T")[0])
-        start_time=data['start_time']
-        end_time=data['end_time']
-        station=data['station']
-        tree=data['tree']
-        thermocouple_depth=data['thermocouple_depth']
-        vpd_range=data['vpd_range']
-        par_range=data['par_range']
-        js_range=data['js_range']
-       
+        #READ parameters
+        start_date, end_date, start_time, end_time, station, tree, thermocouple_depth, vpd_range, par_range,js_range = readParameters(request)
+
+        #Read data from DB
         tz_table=station
         df_Js_VPD=db2df(tz_table+"_Jsvpd")
-        datefilter=f"((timestamp>='{start_date[0]}') and (timestamp<='{end_date[0]}'))"
-        df_Js_VPD["daterange"]=0
-        df_Js_VPD.loc[(df_Js_VPD['timestamp'] >= start_date[0]) & (df_Js_VPD['timestamp'] <= end_date[0]), 'daterange'] = 0
-        for i in range(1,len(start_date)):
-            newDateFilter=f"((timestamp>='{start_date[i]}') and (timestamp<='{end_date[i]}'))"
-            df_Js_VPD.loc[(df_Js_VPD['timestamp'] >= start_date[i]) & (df_Js_VPD['timestamp'] <= end_date[i]), 'daterange'] = i
-            datefilter+=" or "+newDateFilter
-        jsfilter=f"(Js>={js_range[0]} and Js<={js_range[1]})"
-        vpdfilter=f"(vpd>={vpd_range[0]} and vpd<={vpd_range[1]})"
-        parfilter=f"(par>={par_range[0]} and par<={par_range[1]})"
-        df_filt=df_Js_VPD.query(datefilter).query(f"arbol=={tree} and sup=={int(not(thermocouple_depth))}")
-        df_filt=df_filt.query(jsfilter).query(vpdfilter).query(parfilter)
-        timestamps = pd.to_datetime(df_filt['timestamp'])
-        df_filt['month'] = timestamps.dt.month
-        df_filt['date'] = timestamps.dt.strftime('%d/%m/%Y')
-        # Crea una columna 'time' con solo la hora (hora:minuto)
-        df_filt['time'] = timestamps.dt.strftime('%H:%M')
-        timefilter=f"((time>='{start_time}' and time<'{end_time}'))"
-        df_filt=df_filt.query(timefilter)
-        print(df_filt)
-        # Generar el archivo CSV en memoria
+        
+        #Filter data:
+        df_filt = filter_Js_VPD(df_Js_VPD,start_date,end_date,start_time,end_time,js_range,vpd_range,par_range,tree,thermocouple_depth)
+        
+        # Generate csv file to be downloaded
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="data.csv"'
         df_filt.to_csv(path_or_buf=response, index=False)    
@@ -98,8 +63,8 @@ def plot_view(request):
         df_filt = filter_Js_VPD(df_Js_VPD,start_date,end_date,start_time,end_time,js_range,vpd_range,par_range,tree,thermocouple_depth)
         
         # Use datetime column as index and round times to x:00:00 or x:30:00
-        df_filt.set_index('datetime', inplace=True)
-        df_filt=df_filt.resample('30T').asfreq()
+        #df_filt.set_index('datetime', inplace=True)
+        #df_filt=df_filt.resample('30T').asfreq()
         
         #Create Charts:
         s=TZ_TABLES.index(station)+1

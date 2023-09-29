@@ -5,7 +5,7 @@ from django.shortcuts import render
 import json
 from django.shortcuts import render
 from .dfg2db2 import crea_o_actualiza_tabla, db2df, gs_days,irr2db, adapt_dfg, gs_days, obtiene_tzyvpd, \
-            calculaJs_VPD, irr2db, df2db, getRangeDateAndStations_tz, createFig, readParameters
+            calculaJs_VPD, irr2db, df2db, getRangeDateAndStations_tz, createFig, readParameters, filter_Js_VPD
 
 import plotly.graph_objects as go
 import time
@@ -90,46 +90,26 @@ def plot_view(request):
         #READ parameters
         start_date, end_date, start_time, end_time, station, tree, thermocouple_depth, vpd_range, par_range,js_range, vble_to_plot, label_vble_to_plot, vble_x, label_x, vble_to_plot2 = readParameters(request)
 
-        s=TZ_TABLES.index(station)+1
-        label=f"S{s}T{tree}d{thermocouple_depth}"
-        
+        #Read data from DB
         tz_table=station
-        
         df_Js_VPD=db2df(tz_table+"_Jsvpd")
         
-        datefilter=f"((timestamp>='{start_date[0]}') and (timestamp<='{end_date[0]}'))"
-        df_Js_VPD["daterange"]=0
-        df_Js_VPD.loc[(df_Js_VPD['timestamp'] >= start_date[0]) & (df_Js_VPD['timestamp'] <= end_date[0]), 'daterange'] = 0
-        for i in range(1,len(start_date)):
-            newDateFilter=f"((timestamp>='{start_date[i]}') and (timestamp<='{end_date[i]}'))"
-            df_Js_VPD.loc[(df_Js_VPD['timestamp'] >= start_date[i]) & (df_Js_VPD['timestamp'] <= end_date[i]), 'daterange'] = i
-            datefilter+=" or "+newDateFilter
-        jsfilter=f"(Js>={js_range[0]} and Js<={js_range[1]})"
-        vpdfilter=f"(vpd>={vpd_range[0]} and vpd<={vpd_range[1]})"
-        parfilter=f"(par>={par_range[0]} and par<={par_range[1]})"
-        df_filt=df_Js_VPD.query(datefilter).query(f"arbol=={tree} and sup=={int(not(int(thermocouple_depth)))}")
-        df_filt=df_filt.query(jsfilter).query(vpdfilter).query(parfilter)
+        #Filter data:
+        df_filt = filter_Js_VPD(df_Js_VPD,start_date,end_date,start_time,end_time,js_range,vpd_range,par_range,tree,thermocouple_depth)
         
-        timestamps = pd.to_datetime(df_filt['timestamp'])
-        df_filt['datetime']= pd.to_datetime(df_filt['timestamp'])
-        df_filt['month'] = timestamps.dt.month
-        
-        df_filt['time'] = timestamps.dt.strftime('%H:%M')
-        timefilter=f"((time>='{start_time}' and time<'{end_time}'))"
-        df_filt=df_filt.query(timefilter)
-        
-        # Crea una columna 'date' con solo la fecha (día/mes/año)
+        # Use datetime column as index and round times to x:00:00 or x:30:00
         df_filt.set_index('datetime', inplace=True)
         df_filt=df_filt.resample('30T').asfreq()
-        ###CHART1:
         
         #Create Charts:
+        s=TZ_TABLES.index(station)+1
+        fig_title=f"S{s}T{tree}d{thermocouple_depth}"
         linemode=False
         if vble_x=='timestamp':
             linemode=True
-        chart=createFig(df_filt,vble_x,label_x,vble_to_plot,label_vble_to_plot,label,linemode)
+        chart=createFig(df_filt,vble_x,label_x,vble_to_plot,label_vble_to_plot,fig_title,linemode)
         vble_x2='timestamp'
-        chart2=createFig(df_filt,vble_x2,vble_x2,vble_to_plot2,vble_to_plot2,label,True)
+        chart2=createFig(df_filt,vble_x2,vble_x2,vble_to_plot2,vble_to_plot2,fig_title,True)
 
         response_data = {'chart': chart,'chart2': chart2}
         return JsonResponse(response_data)
